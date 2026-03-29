@@ -18,9 +18,9 @@
 
 1. Create or connect a GitHub repository for this folder.
 2. Push the repo to GitHub with `main` as the default branch.
-3. In GitHub, open `Settings -> Pages`.
-4. Confirm the source is `GitHub Actions`.
-5. Push to `main` or run the workflow manually from the `Actions` tab.
+3. Push to `main` or run the workflow manually from the `Actions` tab.
+4. The workflow will attempt to bootstrap Pages automatically through `actions/configure-pages`.
+5. If GitHub still asks for a source in `Settings -> Pages`, set it to `GitHub Actions`.
 
 ## Expected deploy behavior
 
@@ -30,6 +30,7 @@
 | Manual workflow dispatch | Same build/deploy path without a code push |
 | Local `npm run dev` | Uses `/` as the base path |
 | GitHub Actions build | Uses `/<repo-name>/` as the base path |
+| First deploy on a new repo | Tries to enable Pages automatically before upload/deploy |
 
 ## Pre-push checklist
 

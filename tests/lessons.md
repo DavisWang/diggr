@@ -27,3 +27,4 @@
 - If a modal advertises a keyboard close path, keep an app-level hotkey regression for it so browser capture and Phaser listeners cannot break it silently.
 - Add a stability regression for open modal DOM across idle ticks. Handler tests alone miss browser-only click failures caused by continuous rerendering.
 - Keep a game-over-specific idle-tick regression for recovery buttons. The real failure mode was repeated post-death rerenders, not missing click handlers.
+- Deployment automation needs a first-run path too. A workflow that only works after Pages is manually enabled is not actually self-serve.

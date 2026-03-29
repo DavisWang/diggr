@@ -33,3 +33,4 @@
 - Do not claim a modal hotkey in UI copy unless the app shell actually handles it. Inventory advertised `X` close behavior that was never wired.
 - Avoid rerendering modal DOM every frame while paused. Browser click reliability depends on stable nodes, especially for recovery actions like game-over buttons.
 - Transition flags must represent transitions, not steady state. Re-emitting `gameOver=true` every frame kept the recovery modal in a constant rerender loop and made the buttons effectively unclickable.
+- GitHub Pages workflows should bootstrap Pages when possible instead of assuming the repo is already enabled. First deploys on a brand-new repo are a different state than steady-state deploys.
