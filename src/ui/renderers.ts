@@ -6,6 +6,7 @@ import {
   REFINERY_ICON_FRAME_SIZE,
   REFINERY_ICON_SHEET_COLUMNS,
   REFINERY_ICON_SHEET_ROWS,
+  SURFACE_PADS,
   UPGRADE_ICON_FRAME_SIZE,
   UPGRADE_ICON_SHEET_COLUMNS,
   UPGRADE_ICON_SHEET_ROWS,
@@ -35,6 +36,13 @@ import type {
 const UPGRADE_ICON_SHEET_URL = new URL('../assets/sprites/upgrade-shop-icons.png', import.meta.url).href;
 const CONSUMABLE_ICON_SHEET_URL = new URL('../assets/sprites/consumable-shop-icons.png', import.meta.url).href;
 const REFINERY_ICON_SHEET_URL = new URL('../assets/sprites/refinery-shop-icons.png', import.meta.url).href;
+const DIGGER_SHEET_URL = new URL('../assets/sprites/digger-sheet.png', import.meta.url).href;
+const TERRAIN_SHEET_URL = new URL('../assets/sprites/terrain-sheet.png', import.meta.url).href;
+const SHOP_SHEET_URL = new URL('../assets/sprites/surface-shops.png', import.meta.url).href;
+
+const DIGGER_SHEET_COLUMNS = 5;
+const TERRAIN_SHEET_COLUMNS = 4;
+const SHOP_SHEET_COLUMNS = 4;
 
 interface TitleHandlers {
   onNewGame: () => void;
@@ -66,12 +74,15 @@ export function renderTitleScreen(
 
   const wrapper = div('title-screen');
   const card = div('panel title-card');
-  card.append(
-    element('h1', 'title-heading', 'DIGGR'),
+  const hero = div('title-hero');
+  const copy = div('title-copy');
+  const heading = renderPixelTitleLogo();
+  heading.dataset.titleHeading = 'true';
+  copy.append(
     element(
       'p',
       'title-tagline',
-      'Single-player digging RPG. Mine deeper, haul ore back to the surface, and upgrade the rig before lava, gravity, or fuel loss end the run.',
+      'Dig through a shifting mine, cash out at the surface, and keep the rig alive long enough to reach the rarest veins.',
     ),
   );
 
@@ -83,7 +94,9 @@ export function renderTitleScreen(
     button(options.showHowTo ? 'Hide How To Play' : 'How To Play', handlers.onToggleHowTo),
   );
 
-  card.append(actions, element('div', 'title-footer', 'By Pwner Studios'));
+  copy.append(actions);
+  hero.append(copy, renderTitleArtPanel());
+  card.append(heading, hero, element('div', 'title-footer', 'By Pwner Studios'));
   wrapper.append(card);
   root.append(wrapper);
 
@@ -472,13 +485,101 @@ function renderHowToModal(onClose: () => void): HTMLElement {
 
 function renderHowToBody(): HTMLElement {
   const body = div('modal-body');
-  body.append(element('p', 'status-line', 'Goal: dig, refine, upgrade, and survive deeper runs.'));
+  body.append(element('p', 'status-line', 'Goal: mine deeper, surface richer, and stay ahead of heat, fuel, and bad landings.'));
+
+  const grid = div('howto-grid');
+  grid.append(
+    createHowToCard(
+      'Move + Drill',
+      'Arrow keys move the rig. Push left, right, or down into a block to start drilling it.',
+      [
+        sheetSprite(DIGGER_SHEET_URL, 0, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', 'Digger'),
+        sheetSprite(TERRAIN_SHEET_URL, 0, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Dirt'),
+        sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Ore'),
+      ],
+    ),
+    createHowToCard(
+      'Surface Loop',
+      'Return to the surface to upgrade, buy tools, refine cargo, repair, refuel, and save.',
+      SURFACE_PADS.map((pad) =>
+        sheetSprite(SHOP_SHEET_URL, pad.spriteFrame, SHOP_SHEET_COLUMNS, pad.shop === 'save' ? 46 : 42, 'howto-sprite', pad.label),
+      ),
+    ),
+    createHowToCard(
+      'Consumables',
+      'Repair, refuel, blast rock, or teleport with hotkey items. Testing mode also uses W to trigger an earthquake.',
+      [
+        labeledSprite('Z', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('repair_nanobot'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Repair Nanobot')),
+        labeledSprite('C', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('small_tnt'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Small TNT')),
+        labeledSprite('F', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('matter_transporter'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Matter Transporter')),
+      ],
+    ),
+    createHowToCard(
+      'Hazards',
+      'Rock needs TNT, lava burns hull, cargo slows lift, and earthquakes can reshuffle unseen rows below you.',
+      [
+        sheetSprite(TERRAIN_SHEET_URL, 1, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Rock'),
+        sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Lava'),
+        sheetSprite(DIGGER_SHEET_URL, 15, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', 'Damaged Digger'),
+      ],
+    ),
+  );
+
+  body.append(grid);
+
   const list = div('copy-list');
   for (const line of getHowToCopy()) {
-    list.append(element('div', '', line));
+    list.append(element('div', 'howto-footnote', line));
   }
   body.append(list);
   return body;
+}
+
+function renderTitleArtPanel(): HTMLElement {
+  const panel = div('title-art-panel');
+  panel.dataset.titleArt = 'true';
+
+  const skyline = div('title-skyline');
+  skyline.append(
+    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[0].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[0].label),
+    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[1].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[1].label),
+    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[2].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[2].label),
+    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[4].spriteFrame, SHOP_SHEET_COLUMNS, 58, 'title-art-sprite title-art-sprite--balloon', SURFACE_PADS[4].label),
+  );
+
+  const stage = div('title-stage');
+  const stageSky = div('title-stage-sky');
+  stageSky.append(
+    sheetSprite(DIGGER_SHEET_URL, 10, DIGGER_SHEET_COLUMNS, 104, 'title-art-sprite title-art-sprite--digger', 'Flying Digger'),
+      sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 52, 'title-art-sprite title-art-sprite--lava', 'Lava'),
+  );
+  const stageGround = div('title-stage-ground');
+  const oreCluster = div('title-ore-cluster');
+  oreCluster.append(
+    sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Tinnite'),
+    sheetSprite(TERRAIN_SHEET_URL, 6, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Goldium'),
+    sheetSprite(TERRAIN_SHEET_URL, 9, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Runite'),
+  );
+  stageGround.append(oreCluster);
+  stage.append(stageSky, skyline, stageGround);
+
+  panel.append(stage, element('div', 'title-art-caption', 'Drill deeper. Surface smarter. Survive the shift.'));
+  return panel;
+}
+
+function createHowToCard(title: string, copy: string, sprites: HTMLElement[]): HTMLElement {
+  const card = div('panel howto-card');
+  card.dataset.howtoCard = 'true';
+  const spriteRow = div('howto-sprite-row');
+  spriteRow.append(...sprites);
+  card.append(element('h3', 'howto-card-title', title), spriteRow, element('p', 'detail-copy', copy));
+  return card;
+}
+
+function labeledSprite(label: string, sprite: HTMLElement): HTMLElement {
+  const wrap = div('howto-labeled-sprite');
+  wrap.append(element('span', 'choice-badge choice-badge--hotkey', label), sprite);
+  return wrap;
 }
 
 function getModalTitle(type: ShopType | GameState['modal']['type']): string {
@@ -554,5 +655,79 @@ function button(
   node.textContent = text;
   node.disabled = Boolean(options.disabled);
   node.addEventListener('click', onClick);
+  return node;
+}
+
+function renderPixelTitleLogo(): HTMLHeadingElement {
+  const heading = document.createElement('h1');
+  heading.className = 'title-heading title-heading--pixel';
+  heading.setAttribute('aria-label', 'DIGGR');
+
+  const text = document.createElement('span');
+  text.className = 'sr-only';
+  text.textContent = 'DIGGR';
+  heading.append(text, createPixelWord('DIGGR'));
+  return heading;
+}
+
+function createPixelWord(word: string): HTMLElement {
+  const glyphs: Record<string, string[]> = {
+    D: ['11110', '10001', '10001', '10001', '11110'],
+    I: ['11111', '00100', '00100', '00100', '11111'],
+    G: ['11111', '10000', '10111', '10001', '11111'],
+    R: ['11110', '10001', '11110', '10010', '10001'],
+  };
+
+  const layout = document.createElement('span');
+  layout.className = 'pixel-word';
+
+  let columnOffset = 0;
+  for (const character of word) {
+    const glyph = glyphs[character];
+    if (!glyph) {
+      columnOffset += 6;
+      continue;
+    }
+
+    glyph.forEach((row, rowIndex) => {
+      row.split('').forEach((value, columnIndex) => {
+        if (value !== '1') {
+          return;
+        }
+
+        const pixel = document.createElement('span');
+        pixel.className = 'pixel-word__pixel';
+        pixel.style.gridColumn = String(columnOffset + columnIndex + 1);
+        pixel.style.gridRow = String(rowIndex + 1);
+        layout.append(pixel);
+      });
+    });
+
+    columnOffset += glyph[0].length + 1;
+  }
+
+  layout.style.setProperty('--pixel-word-columns', String(columnOffset));
+  return layout;
+}
+
+function sheetSprite(
+  url: string,
+  frame: number,
+  columns: number,
+  displaySize: number,
+  className: string,
+  label: string,
+): HTMLSpanElement {
+  const node = document.createElement('span');
+  node.className = className;
+  node.setAttribute('aria-label', label);
+  node.setAttribute('role', 'img');
+  const frameColumn = frame % columns;
+  const frameRow = Math.floor(frame / columns);
+  node.style.backgroundImage = `url(${url})`;
+  node.style.backgroundSize = `${columns * displaySize}px auto`;
+  node.style.backgroundPosition = `${-frameColumn * displaySize}px ${-frameRow * displaySize}px`;
+  node.style.width = `${displaySize}px`;
+  node.style.height = `${displaySize}px`;
   return node;
 }

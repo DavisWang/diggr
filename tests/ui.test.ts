@@ -40,6 +40,47 @@ describe('ui rendering', () => {
     expect(testingButton).toBeTruthy();
   });
 
+  test('title screen renders sprite-backed hero art', () => {
+    const root = document.createElement('div');
+
+    renderTitleScreen(
+      root,
+      { hasSave: false, showHowTo: false },
+      {
+        onNewGame: vi.fn(),
+        onTestingGame: vi.fn(),
+        onLoadGame: vi.fn(),
+        onToggleHowTo: vi.fn(),
+      },
+    );
+
+    expect(root.querySelector('[data-title-art="true"]')).toBeTruthy();
+    expect(root.querySelector('.title-art-sprite--digger')).toBeTruthy();
+    expect(root.querySelector('.title-art-sprite--balloon')).toBeTruthy();
+  });
+
+  test('how to play modal renders sprite-backed instruction cards', () => {
+    const root = document.createElement('div');
+
+    renderTitleScreen(
+      root,
+      { hasSave: false, showHowTo: true },
+      {
+        onNewGame: vi.fn(),
+        onTestingGame: vi.fn(),
+        onLoadGame: vi.fn(),
+        onToggleHowTo: vi.fn(),
+      },
+    );
+
+    expect(root.querySelectorAll('[data-howto-card="true"]')).toHaveLength(4);
+    expect(root.querySelectorAll('.howto-sprite').length).toBeGreaterThan(8);
+    expect(root.textContent).toContain('Move + Drill');
+    expect(root.textContent).toContain('Surface Loop');
+    expect(root.textContent).toContain('Consumables');
+    expect(root.textContent).toContain('Hazards');
+  });
+
   test('game HUD renders the key player metrics', () => {
     const root = document.createElement('div');
     const state = createNewGame(2020);

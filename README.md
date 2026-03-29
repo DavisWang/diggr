@@ -11,6 +11,7 @@ Diggr is a desktop-first mining game with:
 - sprite-backed consumable-use animations for repair, fuel, explosives, and teleport tools
 - rare post-shop earthquakes that shake the camera, lock controls briefly, and reshuffle unseen mine rows below the viewport
 - testing mode support, including a manual `W` hotkey for earthquake validation
+- sprite-backed title and How To Play presentation that reuse the live game art language
 - full-cargo mining that still destroys blocks and discards ore if the hold is already full
 - gravity, fuel burn, lava damage, and fall damage
 - surface shops for upgrades, consumables, refining, and service

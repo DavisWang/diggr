@@ -21,8 +21,18 @@ export class TitleScene extends Phaser.Scene {
     const width = this.scale.width;
     const height = this.scale.height;
     this.stars?.clear();
-    this.stars?.fillStyle(0x091220, 1);
+    this.stars?.fillStyle(0x0b1320, 1);
     this.stars?.fillRect(0, 0, width, height);
+    this.stars?.fillStyle(0x1b2d47, 0.9);
+    this.stars?.fillRect(0, height * 0.62, width, height * 0.14);
+    this.stars?.fillStyle(0xa8d762, 1);
+    this.stars?.fillRect(0, height * 0.74, width, 6);
+    this.stars?.fillStyle(0x34632e, 1);
+    this.stars?.fillRect(0, height * 0.75, width, 10);
+    this.stars?.fillStyle(0x7d4e25, 1);
+    this.stars?.fillRect(0, height * 0.78, width, height * 0.22);
+    this.stars?.fillStyle(0xa86b33, 1);
+    this.stars?.fillRect(0, height * 0.81, width, height * 0.05);
     this.stars?.fillStyle(0xf6ebc9, 1);
 
     for (let index = 0; index < 80; index += 1) {
@@ -31,10 +41,14 @@ export class TitleScene extends Phaser.Scene {
       this.stars?.fillRect(x, y, index % 5 === 0 ? 3 : 2, index % 5 === 0 ? 3 : 2);
     }
 
-    this.stars?.fillStyle(0xe1904c, 1);
-    this.stars?.fillRect(0, height * 0.76, width, height * 0.24);
-    this.stars?.fillStyle(0x6c4321, 1);
-    this.stars?.fillRect(0, height * 0.8, width, height * 0.2);
+    this.stars?.fillStyle(0xffd879, 0.14);
+    this.stars?.fillRect(width * 0.16, height * 0.08, 90, 90);
+    this.stars?.fillStyle(0xf6ebc9, 0.95);
+    this.stars?.fillRect(width * 0.18, height * 0.1, 48, 48);
+
+    const shaftWidth = Math.max(80, width * 0.12);
+    this.stars?.fillStyle(0x0a1220, 1);
+    this.stars?.fillRect(width * 0.44, height * 0.74, shaftWidth, height * 0.26);
   }
 
   private getApp(): DiggrApp {

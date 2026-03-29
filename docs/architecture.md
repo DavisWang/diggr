@@ -6,6 +6,7 @@
 - `src/game/` owns deterministic world generation, player rules, economy actions, consumable effects, and save-ready state.
 - Generated visual assets remain repo-owned source artifacts, not ad hoc outputs: sprite sheets and favicon are regenerated from `scripts/` so browser builds stay in sync with runtime content.
 - `src/ui/renderers.ts` owns the title screen, HUD, and modal overlays as plain DOM so UI flows can be regression-tested without driving a real browser.
+- The title screen and How To Play modal are sprite-backed DOM surfaces, not separate Phaser UIs, so presentation polish there should stay inside `renderers.ts` and `styles.css`.
 
 ## Runtime boundaries
 

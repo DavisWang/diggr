@@ -16,6 +16,7 @@
 - Inventory UI needs a regression that only owned consumables render, so the quick-check modal stays readable.
 - Rare event systems tied to modal close need tests through the shared close path and must assert that visible rows stay untouched while below-viewport rows rebuild.
 - Testing-only hooks should still call the real gameplay path and need a regression that proves non-testing saves do not get the same control behavior for free.
+- Title-screen layout regressions can hide in visual overflow rather than DOM assertions alone. Keep browser-level verification for hero/logo/button composition changes.
 - Add a typed close-path regression for non-shop modals when shop-exit gating exists. Inventory should not poison surface shop re-entry logic.
 - Cover game-over recovery at the app-shell level. Button click tests alone miss broken scene transitions.
 - Add a blocked-thrust fuel regression so pressing into a ceiling does not silently drain the tank.
@@ -53,3 +54,4 @@
 - Keep an explosive-specific protected-surface regression. Row-0 guard coverage on digging alone is not enough because TNT uses a separate destruction path.
 - Teleport regressions should assert both landing stability and no immediate modal re-entry. A “surface” destination is still broken if the next tick drops the rig or opens a shop.
 - Add a moving-to-settled regression for forced surface relocations. It is not enough to check the first tick; the shop should stay locked during motion and unlock only after a genuine stop.
+- Title-screen layout regressions need a real bottom-anchor rule when footer copy is meant to sit at the base of a panel. Vertical centering on the whole column will drift as hero content changes height.

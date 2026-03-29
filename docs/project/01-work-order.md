@@ -3,7 +3,7 @@
 ## Header
 
 - Project: `Diggr`
-- Work order ID: `WO-2026-03-29-ga-polish`
+- Work order ID: `WO-2026-03-29-title-howto-art`
 - Requester: `Davis Wang`
 - Owner: `Producer`
 - Project mode: `existing_project`
@@ -12,32 +12,32 @@
 
 ## Objective
 
-Add a targeted GA-polish pass that introduces a testing-only manual earthquake hotkey, regenerates all shipped sprite sheets plus a favicon from source, and refreshes docs so the project is described as a GA-ready browser game instead of a prototype. The implementation should preserve current gameplay behavior and stay within a targeted refresh limited to the request-affected code, assets, and docs.
+Add a targeted presentation pass that upgrades the title screen and How To Play screen to use the shipped sprite language and a stronger visual art direction. The implementation should preserve current handlers and gameplay behavior, and stay within a targeted refresh limited to the request-affected UI code, CSS, tests, and docs.
 
 ## Requested Change
 
-Add a testing-mode hotkey `W` that manually triggers the real earthquake path, add a favicon, regenerate all sprite sheets so the checked-in assets match the current game, and update the docs to position Diggr as GA-ready rather than a prototype.
+Update the How To Play screen with actual game sprites and refresh the title screen to incorporate the current art direction and generated sprites, using creative liberty.
 
 ## Existing Behavior To Preserve
 
-- Existing earthquake behavior remains intact for non-testing gameplay.
-- World generation remains seeded and deterministic.
-- Current sprite language and approved icon direction should be preserved while regenerating from source.
-- Current digging, consumables, save/load, shops, and HUD behavior should remain intact.
+- Existing title handlers and modal behavior remain intact.
+- Current gameplay state, save/load, shops, and HUD behavior remain intact.
+- The already-approved sprite language should be reused rather than replaced with a new art system.
+- TitleScene can remain a background layer, but the request should not force a new runtime UI architecture.
 
 ## In Scope
 
-- Add a testing-only manual input hook for the existing earthquake system.
-- Regenerate runtime sprite sheets and browser-facing favicon from repo scripts.
-- Add targeted regression coverage for the new testing control.
-- Refresh the minimal docs required for the landed behavior and GA-ready positioning.
+- Refresh the title-screen DOM markup to use sprite-backed hero art.
+- Refresh the How To Play body to use sprite-backed instructional cards.
+- Add targeted UI regressions for the new presentation structure.
+- Refresh the minimal docs required for the landed behavior.
 
 ## Out Of Scope
 
-- Rebalancing ore, shops, hazards, or earthquake odds.
-- Redesigning the current shop UI or art direction.
-- Reworking the visible mine or introducing whole-world rerolls.
-- Audio or non-requested visual redesign.
+- Rebalancing ore, shops, hazards, or earthquakes.
+- Reworking gameplay, inventory, or modal logic.
+- New asset-generation systems or unrelated art overhauls.
+- Audio or non-requested visual redesign beyond title/how-to screens.
 - Full artifact-chain regeneration beyond intake and work order.
 
 ## Inputs
@@ -45,29 +45,26 @@ Add a testing-mode hotkey `W` that manually triggers the real earthquake path, a
 - [00-existing-project-intake.md](/Users/davis.wang/Documents/diggr/docs/project/00-existing-project-intake.md)
 - [README.md](/Users/davis.wang/Documents/diggr/README.md)
 - [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md)
-- [logic.ts](/Users/davis.wang/Documents/diggr/src/game/logic.ts)
-- [GameScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/GameScene.ts)
-- [index.html](/Users/davis.wang/Documents/diggr/index.html)
-- [generateSpriteSheets.mjs](/Users/davis.wang/Documents/diggr/scripts/generateSpriteSheets.mjs)
-- [package.json](/Users/davis.wang/Documents/diggr/package.json)
-- [logic.test.ts](/Users/davis.wang/Documents/diggr/tests/logic.test.ts)
-- [app.test.ts](/Users/davis.wang/Documents/diggr/tests/app.test.ts)
+- [renderers.ts](/Users/davis.wang/Documents/diggr/src/ui/renderers.ts)
+- [styles.css](/Users/davis.wang/Documents/diggr/src/styles.css)
+- [TitleScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/TitleScene.ts)
+- [ui.test.ts](/Users/davis.wang/Documents/diggr/tests/ui.test.ts)
 
 ## Artifact Status Inputs
 
 | Artifact | Status | Notes |
 | --- | --- | --- |
-| `docs/project/00-existing-project-intake.md` | `refresh_required` | Retargeted to the GA-polish request in this loop. |
-| `docs/project/01-work-order.md` | `refresh_required` | Retargeted to the GA-polish request in this loop. |
-| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Needs GA-ready positioning and asset-pipeline command refresh. |
-| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Needs manual-testing hook and generator ownership refresh. |
-| `Testing control + asset generators` | `refresh_required` | This is the implementation target. |
-| `Unrelated economy/shop/deploy artifacts` | `out_of_scope` | Preserve unless a regression is introduced. |
+| `docs/project/00-existing-project-intake.md` | `refresh_required` | Retargeted to the title/how-to art request in this loop. |
+| `docs/project/01-work-order.md` | `refresh_required` | Retargeted to the title/how-to art request in this loop. |
+| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Should mention the sprite-backed title/how-to presentation. |
+| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Should capture the sprite-backed DOM title/how-to layer. |
+| `Title/how-to renderer + styles` | `refresh_required` | This is the implementation target. |
+| `Unrelated gameplay and deploy artifacts` | `out_of_scope` | Preserve unless a regression is introduced. |
 
 ## Required Outputs
 
-- Testing-only `W` earthquake trigger landed in the local browser build.
-- Regenerated sprite sheets and favicon landed from source scripts.
+- Sprite-backed title screen landed in the local browser build.
+- Sprite-backed How To Play screen landed in the local browser build.
 - Updated intake/work-order artifacts under `docs/project/`.
 - Targeted docs refresh in repo-level docs.
 - Passing `npm test` and `npm run build`.
@@ -77,16 +74,16 @@ Add a testing-mode hotkey `W` that manually triggers the real earthquake path, a
 - Existing-project mode uses targeted refresh only.
 - Preserve existing working behavior unless the request explicitly changes it.
 - Browser-first validation and local runnable build remain required.
-- The testing hook must call the real earthquake gameplay path rather than a debug-only fake implementation.
+- Reuse the current sprite sheets and DOM modal/title shell instead of introducing a separate title-specific asset system.
 
 ## Escalation Boundary
 
-The owner may choose the exact testing hotkey plumbing, favicon treatment, and asset-generation workflow as long as it stays browser-first, reproducible, and preserves current behavior. Any change to gameplay balance, visual direction, or release stack would require escalation.
+The owner may choose the exact visual composition, sprite selection, and layout treatment for title/how-to surfaces as long as the current sprite language is reused and existing handlers remain intact. Any change to gameplay behavior or a broader art-direction reset would require escalation.
 
 ## Done When
 
-- Testing mode can manually trigger the real earthquake path.
-- Runtime sprite sheets and favicon regenerate cleanly from repo scripts.
+- Title screen uses sprite-backed hero art that reflects the shipped game.
+- How To Play uses sprite-backed instructional cards instead of plain text only.
 - Repo docs and project artifacts reflect the new behavior.
 - Local verification passes.
 
