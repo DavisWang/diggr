@@ -34,6 +34,12 @@
 - Drill completion clears the block, resolves rewards/damage, and moves the real player state into the newly opened space.
 - Cargo capacity is enforced at drill resolution, not drill start. If the hold is full, the block still breaks and collectible ore is discarded instead of blocking mining.
 
+## Consumable feedback model
+
+- `useConsumable` remains the gameplay source of truth for all item effects.
+- Consumable use now also starts a short-lived `activeConsumableEffect` state in gameplay, so the scene can render feedback without inferring item use from toast text or raw input.
+- `GameScene` renders those effects through a dedicated overlay graphics layer, separate from terrain/drill rendering, so repair, fuel, TNT, transporter, and fissurizer visuals can evolve without changing item mechanics.
+
 ## Tuning model
 
 - Upgrade stats, consumable prices, ore values, depth bands, and physics constants all live in `src/config/content.ts`.

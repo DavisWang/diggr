@@ -1,5 +1,6 @@
 import { SURFACE_PADS } from '../src/config/content';
 import {
+  getConsumableEffectStyle,
   getDirectionalDrillErosionRect,
   getDrillMaskRect,
   getDrillMaterialVisualCategory,
@@ -109,6 +110,27 @@ describe('sprite rendering helpers', () => {
     expect(getDrillMaterialVisualCategory('dirt')).toBe('soft');
     expect(getDrillMaterialVisualCategory('silverium')).toBe('ore');
     expect(getDrillMaterialVisualCategory('hidden_lava')).toBe('lava');
+  });
+
+  test('consumable effects map each item family to a distinct visual style', () => {
+    expect(getConsumableEffectStyle({ type: 'repair_nanobot', progress: 0.2 })).toMatchObject({
+      kind: 'repair',
+      particleCount: 5,
+    });
+    expect(getConsumableEffectStyle({ type: 'large_fuel_tank', progress: 0.2 })).toMatchObject({
+      kind: 'fuel',
+      particleCount: 5,
+    });
+    expect(getConsumableEffectStyle({ type: 'large_tnt', progress: 0.2 })).toMatchObject({
+      kind: 'blast',
+      radiusTiles: 2.45,
+    });
+    expect(getConsumableEffectStyle({ type: 'matter_transporter', progress: 0.2 })).toMatchObject({
+      kind: 'transport',
+    });
+    expect(getConsumableEffectStyle({ type: 'quantum_fissurizer', progress: 0.2 })).toMatchObject({
+      kind: 'fissure',
+    });
   });
 
   test('drill overlay keeps real block art visible for soft blocks and ore', () => {

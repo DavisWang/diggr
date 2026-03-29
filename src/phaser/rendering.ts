@@ -1,5 +1,5 @@
 import { BLOCK_DEFS, DRILL_COMPLETION_INSET, PLAYER_HALF_HEIGHT, PLAYER_HALF_WIDTH, SURFACE_RENDER_OFFSET } from '../config/content';
-import type { BlockCell, BlockType, ControlState, DrillRenderState, GameState, ShopPad } from '../types';
+import type { BlockCell, BlockType, ConsumableType, ControlState, DrillRenderState, GameState, ShopPad } from '../types';
 
 export type DiggerRenderState =
   | 'idle_surface'
@@ -99,6 +99,22 @@ export interface DrillMaskRect {
   y: number;
   width: number;
   height: number;
+}
+
+export type ConsumableEffectVisualKind = 'repair' | 'fuel' | 'blast' | 'transport' | 'fissure';
+
+export interface ConsumableEffectRenderState {
+  type: ConsumableType;
+  progress: number;
+}
+
+export interface ConsumableEffectStyle {
+  kind: ConsumableEffectVisualKind;
+  primaryColor: number;
+  accentColor: number;
+  radiusTiles: number;
+  secondaryRadiusTiles: number;
+  particleCount: number;
 }
 
 const SURFACE_GROUND_FRAMES = [14, 15, 16] as const;
@@ -268,6 +284,92 @@ export function getShopRenderLayout(pad: ShopPad, tileSize: number): ShopRenderL
 
 export function getSurfaceGroundFrame(x: number): number {
   return SURFACE_GROUND_FRAMES[Math.abs(x) % SURFACE_GROUND_FRAMES.length];
+}
+
+export function getConsumableEffectStyle(effect: ConsumableEffectRenderState): ConsumableEffectStyle {
+  switch (effect.type) {
+    case 'repair_nanobot':
+      return {
+        kind: 'repair',
+        primaryColor: 0x73e06d,
+        accentColor: 0xe5ffd4,
+        radiusTiles: 0.72,
+        secondaryRadiusTiles: 0.38,
+        particleCount: 5,
+      };
+    case 'repair_microbot':
+      return {
+        kind: 'repair',
+        primaryColor: 0x4fd66d,
+        accentColor: 0xf2ffdb,
+        radiusTiles: 0.96,
+        secondaryRadiusTiles: 0.54,
+        particleCount: 8,
+      };
+    case 'small_fuel_tank':
+      return {
+        kind: 'fuel',
+        primaryColor: 0x59b8ff,
+        accentColor: 0xe3f6ff,
+        radiusTiles: 0.72,
+        secondaryRadiusTiles: 0.22,
+        particleCount: 3,
+      };
+    case 'large_fuel_tank':
+      return {
+        kind: 'fuel',
+        primaryColor: 0x4faeff,
+        accentColor: 0xf0fbff,
+        radiusTiles: 0.94,
+        secondaryRadiusTiles: 0.3,
+        particleCount: 5,
+      };
+    case 'small_tnt':
+      return {
+        kind: 'blast',
+        primaryColor: 0xffa63d,
+        accentColor: 0xffeb9b,
+        radiusTiles: 1.55,
+        secondaryRadiusTiles: 0.46,
+        particleCount: 8,
+      };
+    case 'large_tnt':
+      return {
+        kind: 'blast',
+        primaryColor: 0xff8436,
+        accentColor: 0xfff0b8,
+        radiusTiles: 2.45,
+        secondaryRadiusTiles: 0.68,
+        particleCount: 12,
+      };
+    case 'matter_transporter':
+      return {
+        kind: 'transport',
+        primaryColor: 0x66f2ff,
+        accentColor: 0xeaffff,
+        radiusTiles: 0.92,
+        secondaryRadiusTiles: 1.2,
+        particleCount: 6,
+      };
+    case 'quantum_fissurizer':
+      return {
+        kind: 'fissure',
+        primaryColor: 0xbf79ff,
+        accentColor: 0xf1ddff,
+        radiusTiles: 1.18,
+        secondaryRadiusTiles: 1.65,
+        particleCount: 9,
+      };
+    default:
+      return {
+        kind: 'repair',
+        primaryColor: 0xffffff,
+        accentColor: 0xffffff,
+        radiusTiles: 0.8,
+        secondaryRadiusTiles: 0.4,
+        particleCount: 4,
+      };
+  }
 }
 
 export function resolveDiggerRenderState(input: ResolveDiggerRenderStateInput): ResolvedDiggerRenderState {

@@ -131,6 +131,12 @@ export interface DrillRenderState {
   blockType: BlockType;
 }
 
+export interface ActiveConsumableEffectState {
+  type: ConsumableType;
+  remainingSeconds: number;
+  totalSeconds: number;
+}
+
 export interface WorldChunk {
   index: number;
   seed: number;
@@ -191,6 +197,7 @@ export interface GameState {
   mode: 'gameplay' | 'modal';
   modal: ModalState;
   modalDismissGraceRemaining: number;
+  activeConsumableEffect: ActiveConsumableEffectState | null;
   world: WorldState;
   player: PlayerState;
   meta: GameMeta;

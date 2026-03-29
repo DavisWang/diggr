@@ -426,6 +426,33 @@ describe('game rules', () => {
     expect(Math.abs(state.player.velocity.x) + Math.abs(state.player.velocity.y)).toBeGreaterThan(0);
   });
 
+  test('using consumables starts a visual effect state that later expires', () => {
+    const state = createNewGame(1042);
+    state.player.inventory.repair_nanobot = 1;
+    state.player.inventory.large_fuel_tank = 1;
+    state.player.inventory.large_tnt = 1;
+    state.player.inventory.matter_transporter = 1;
+    state.player.inventory.quantum_fissurizer = 1;
+
+    useConsumable(state, 'repair_nanobot');
+    expect(state.activeConsumableEffect?.type).toBe('repair_nanobot');
+
+    useConsumable(state, 'large_fuel_tank');
+    expect(state.activeConsumableEffect?.type).toBe('large_fuel_tank');
+
+    useConsumable(state, 'large_tnt');
+    expect(state.activeConsumableEffect?.type).toBe('large_tnt');
+
+    useConsumable(state, 'matter_transporter');
+    expect(state.activeConsumableEffect?.type).toBe('matter_transporter');
+
+    useConsumable(state, 'quantum_fissurizer');
+    expect(state.activeConsumableEffect?.type).toBe('quantum_fissurizer');
+
+    tickGame(state, { left: false, right: false, up: false, down: false, consume: [] }, 1.2);
+    expect(state.activeConsumableEffect).toBeNull();
+  });
+
   test('shop actions update money, inventory, and player stats', () => {
     const state = createNewGame(1016);
     state.player.cash = 2000;

@@ -37,6 +37,7 @@ import {
 import type { DrillMiningMode } from './world';
 import type {
   ActiveDrillState,
+  ActiveConsumableEffectState,
   BlockType,
   ConsumableType,
   ControlState,
@@ -73,6 +74,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
     mode: 'gameplay',
     modal: { type: 'none' },
     modalDismissGraceRemaining: 0,
+    activeConsumableEffect: null,
     world,
     player,
     meta: {
@@ -90,6 +92,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
 export function restoreGame(state: GameState): GameState {
   normalizeSaveStationResumeState(state);
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
+  state.activeConsumableEffect = state.activeConsumableEffect ?? null;
   state.player.activeDrill = state.player.activeDrill ?? null;
   state.meta.testingMode = Boolean(state.meta.testingMode);
   syncPlayerDerived(state.player, state.meta.testingMode);
@@ -105,6 +108,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   };
 
   if (state.status === 'game_over') {
+    state.activeConsumableEffect = null;
     state.player.velocity.x *= 0.85;
     state.player.velocity.y *= 0.85;
     return result;
@@ -274,6 +278,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
 
   if (state.player.health <= 0 || state.player.fuel <= 0) {
     cancelActiveDrill(state);
+    state.activeConsumableEffect = null;
     state.status = 'game_over';
     state.mode = 'modal';
     state.modal = {
@@ -285,6 +290,8 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   } else {
     state.toast = result.toast ?? state.toast;
   }
+
+  updateConsumableEffect(state, dtSeconds);
 
   return result;
 }
@@ -469,6 +476,7 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
   }
 
   state.player.inventory[type] -= 1;
+  triggerConsumableEffect(state, type);
 
   switch (type) {
     case 'repair_nanobot':
@@ -512,6 +520,62 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
     default:
       return null;
   }
+}
+
+function triggerConsumableEffect(state: GameState, type: ConsumableType): void {
+  state.activeConsumableEffect = {
+    type,
+    totalSeconds: getConsumableEffectDuration(type),
+    remainingSeconds: getConsumableEffectDuration(type),
+  };
+}
+
+function updateConsumableEffect(state: GameState, dtSeconds: number): void {
+  const effect = state.activeConsumableEffect;
+  if (!effect) {
+    return;
+  }
+
+  effect.remainingSeconds = Math.max(0, effect.remainingSeconds - dtSeconds);
+  if (effect.remainingSeconds <= 0) {
+    state.activeConsumableEffect = null;
+  }
+}
+
+function getConsumableEffectDuration(type: ConsumableType): number {
+  switch (type) {
+    case 'repair_nanobot':
+      return 0.55;
+    case 'repair_microbot':
+      return 0.8;
+    case 'small_fuel_tank':
+      return 0.5;
+    case 'large_fuel_tank':
+      return 0.72;
+    case 'small_tnt':
+      return 0.46;
+    case 'large_tnt':
+      return 0.62;
+    case 'matter_transporter':
+      return 0.84;
+    case 'quantum_fissurizer':
+      return 0.92;
+    default:
+      return 0.6;
+  }
+}
+
+export function getConsumableEffectRenderState(
+  activeEffect: ActiveConsumableEffectState | null,
+): { type: ConsumableType; progress: number } | null {
+  if (!activeEffect) {
+    return null;
+  }
+
+  return {
+    type: activeEffect.type,
+    progress: clamp(1 - activeEffect.remainingSeconds / activeEffect.totalSeconds, 0, 1),
+  };
 }
 
 export function getSelectedUpgrade(state: GameState): UpgradeTierDef | null {

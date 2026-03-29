@@ -8,6 +8,7 @@ Diggr is a desktop-first mining prototype with:
 
 - deterministic chunked world generation
 - timed drilling with directional erosion animation
+- consumable-use animations for repair, fuel, explosives, and teleport tools
 - full-cargo mining that still destroys blocks and discards ore if the hold is already full
 - gravity, fuel burn, lava damage, and fall damage
 - surface shops for upgrades, consumables, refining, and service
