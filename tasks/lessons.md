@@ -1,0 +1,35 @@
+# Lessons
+
+- Do not rebuild modal/title DOM on a timer while the game is paused. Stable interactive overlays matter more than frequent re-rendering.
+- Add UI handler tests for critical buttons, not just enabled/disabled assertions. For this project that includes `Sell All`, modal `X`, `Restart`, and `Back To Title`.
+- Keep rendering tied to viewport width for a fixed-column mine. A 13-column world should stretch to the browser width and respond to resize events.
+- Preserve escape routes in traversal mechanics. Full cargo and weak thrusters should slow takeoff materially, but should not make the player permanently stuck underground.
+- Lock the starting surface state with tests. The center shaft depth and the digger's surface placement are gameplay expectations, not cosmetic details.
+- Movement intent should dismiss shop windows and return control immediately. Shop UI cannot trap arrow-key navigation.
+- Fall damage is balance data, not just collision fallout. Keep an explicit threshold and cap, and cover the curve with tests.
+- Shop entry detection must tolerate approximate positioning and modest approach speed. If interaction requires precise parking, the surface UX is wrong.
+- The first surface layer is protected terrain. Keep explicit tests preventing any digging into row `0`.
+- Surface interaction tuning needs a spawn-position regression test. If the player opens a shop on frame one, the trigger is too broad.
+- Surface render offsets should not toggle on grounded/airborne transitions at the top layer. Tie the visual rule to the surface zone to avoid clipping flicker.
+- Movement-dismissed shop modals need a brief grace period after opening. Otherwise the same held arrow key both enters and instantly exits the shop.
+- When tuning a modal grace period, use a human-scale value. Sub-200ms debounce is too short for held movement keys; this interaction wants roughly 1-2 seconds.
+- Inventory views should reflect owned items, not the full catalog. Zero-count rows add noise and make quick checks slower.
+- New modal types must not leak into shop-only state like `blockedShopUntilExit`. Keep shop gating typed to actual shop modals.
+- Game-over actions need an app-shell transition path test, not just button render coverage. Scene stop/start wiring can break even when DOM click handlers are fine.
+- Upward thrust fuel burn should depend on actual movement. If the ceiling blocks lift, do not charge flight fuel.
+- Ceiling contact while thrusting should pin vertical motion, not jitter the rig downward between frames. Otherwise blocked-flight still feels broken even if fuel no longer drains.
+- When the user says a UI path still fails after unit coverage exists, verify it in a real browser and add a debug hook only if it materially improves repeatability.
+- If Phaser scene transitions behave inconsistently on recovery flows, prefer rebooting the small game instance over fighting scene-manager edge cases. This project is simple enough that reliability wins.
+- Logic coverage for a hotkey is not enough when the real browser can drop focus or miss Phaser keyboard state. Keep a narrow browser-level fallback for critical non-text-input hotkeys like `Q`.
+- Critical browser hotkeys should live at the app shell unless they truly need scene-local semantics. Scene-only keyboard handling is too easy to lose across focus changes and reboots.
+- Game-over recovery paths need app-shell interaction tests that dispatch real `MouseEvent` clicks and assert the post-click screen state, not only button existence or direct callback assumptions.
+- Overlay containers that intentionally default to `pointer-events: none` need explicit interactive descendants for real-browser reliability. Do not assume jsdom click tests prove the CSS event path.
+- If a critical browser hotkey still flakes after moving it to the app shell, register it in capture phase so Phaser or another bubbling listener cannot swallow it before the app sees it.
+- Primary HTML controls should not depend on overlay passthrough semantics. If the canvas does not need mouse input, let the overlay root own pointer events and opt specific non-interactive regions out.
+- Left/right dig erosion must be validated against the block face the drill actually contacts. For side drilling, the tile should erode from the contact edge, not just from the movement direction label.
+- If two visuals are meant to line up, derive both from the same geometry. Separate “nice-feeling” offsets will drift from the erosion edge and read as broken.
+- If the animation implies a real positional transition, commit that transition to gameplay state on completion. Render-only offsets create obvious snap-back artifacts.
+- If gameplay says an action is committed, lock out conflicting movement until it resolves. Timed mining should not be cancellable by ordinary control input.
+- Do not claim a modal hotkey in UI copy unless the app shell actually handles it. Inventory advertised `X` close behavior that was never wired.
+- Avoid rerendering modal DOM every frame while paused. Browser click reliability depends on stable nodes, especially for recovery actions like game-over buttons.
+- Transition flags must represent transitions, not steady state. Re-emitting `gameOver=true` every frame kept the recovery modal in a constant rerender loop and made the buttons effectively unclickable.

@@ -1,0 +1,29 @@
+# Test Lessons
+
+- Modal and title overlays must keep stable DOM while interactive buttons are on screen. Re-render only on state changes, not continuously while paused.
+- Regressions on `Sell All`, shop close, restart, and back-to-title should be caught with click-path tests, not only static render assertions.
+- Surface rendering needs viewport-aware sizing. A fixed-width mine should fill the browser horizontally and adapt on resize.
+- Movement rules must always preserve recoverability. Heavy cargo can slow ascent, but takeoff cannot become impossible.
+- The starting map layout is part of the contract: keep the center entry shaft at two dug blocks and keep the digger visually on the surface.
+- Movement keys should dismiss shop modals and hand control back immediately.
+- Fall damage needs direct threshold and cap tests because tuning regressions are gameplay-breaking but visually subtle.
+- Add a forgiving surface-shop trigger test that covers both proximity and moderate movement speed.
+- Add a dig-rule test for row `0` so the protected top layer cannot regress.
+- Add a spawn regression so the default start state does not auto-open any shop.
+- Surface visual fixes near ground should avoid state-flip flicker between airborne and grounded frames.
+- Add a modal grace-delay regression so shop dismissal from movement does not fire on the same held keypress that opened the shop.
+- Keep a regression around the actual grace duration range so it does not drift back to a near-instant dismiss.
+- Inventory UI needs a regression that only owned consumables render, so the quick-check modal stays readable.
+- Add a typed close-path regression for non-shop modals when shop-exit gating exists. Inventory should not poison surface shop re-entry logic.
+- Cover game-over recovery at the app-shell level. Button click tests alone miss broken scene transitions.
+- Add a blocked-thrust fuel regression so pressing into a ceiling does not silently drain the tank.
+- Blocked-thrust coverage should also assert no vertical drift or bounce under a ceiling, not only fuel preservation.
+- Keep a browser-verification path for critical restart flows. Unit tests can pass while live DOM or scene behavior is still wrong.
+- Recovery-flow tests should exercise a mounted app lifecycle, not only isolated handlers. Scene recreation bugs live above the modal rendering layer.
+- Keep a directional erosion regression for both horizontal drill directions. Left/right crop math is easy to invert if tests only cover “some width disappeared.”
+- Add exact geometry assertions when two render elements must stay aligned. Direction-only assertions were too weak to catch the rig drifting off the erosion face.
+- Add a post-animation state regression when render motion implies real movement. Otherwise the visual path can be correct while gameplay still snaps back on the final frame.
+- Add a “committed action cannot be interrupted” regression for timed interactions. Directional input during drilling should not cancel, redirect, or move the rig.
+- If a modal advertises a keyboard close path, keep an app-level hotkey regression for it so browser capture and Phaser listeners cannot break it silently.
+- Add a stability regression for open modal DOM across idle ticks. Handler tests alone miss browser-only click failures caused by continuous rerendering.
+- Keep a game-over-specific idle-tick regression for recovery buttons. The real failure mode was repeated post-death rerenders, not missing click handlers.
