@@ -1,18 +1,21 @@
 # Diggr
 
-Browser-based 2D digging RPG prototype built with `Phaser 3 + TypeScript + Vite`.
+Browser-based 2D digging RPG built for GA-ready browser release on `Phaser 3 + TypeScript + Vite`.
 
 ## What it is
 
-Diggr is a desktop-first mining prototype with:
+Diggr is a desktop-first mining game with:
 
 - deterministic chunked world generation
 - timed drilling with directional erosion animation
 - sprite-backed consumable-use animations for repair, fuel, explosives, and teleport tools
+- rare post-shop earthquakes that shake the camera, lock controls briefly, and reshuffle unseen mine rows below the viewport
+- testing mode support, including a manual `W` hotkey for earthquake validation
 - full-cargo mining that still destroys blocks and discards ore if the hold is already full
 - gravity, fuel burn, lava damage, and fall damage
 - surface shops for upgrades, consumables, refining, and service
 - local save/load through `localStorage`
+- generated sprite sheets and favicon that are reproducible from repo scripts
 - DOM-based HUD and modals layered over a Phaser scene
 
 ## Repo map
@@ -36,6 +39,7 @@ Diggr is a desktop-first mining prototype with:
 | `npm run dev` | Start the local dev server |
 | `npm run build` | Type-check and build production assets |
 | `npm run preview` | Preview the production build locally |
+| `npm run generate:assets` | Regenerate terrain, digger, shop, effect, icon, and favicon assets |
 | `npm test` | Run the regression suite |
 
 ## Development model

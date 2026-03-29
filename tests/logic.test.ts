@@ -5,6 +5,7 @@ import {
   buyUpgrade,
   calculateDrillDurationSeconds,
   calculateFallDamage,
+  closeModal,
   computeServiceCost,
   createNewGame,
   getDrillRenderState,
@@ -326,6 +327,92 @@ describe('game rules', () => {
     expect(state.mode).toBe('gameplay');
     expect(state.modal.type).toBe('none');
     expect(state.blockedShopUntilExit).toBeNull();
+  });
+
+  test('earthquake can trigger after a shop closes and regenerates only rows below the viewport', () => {
+    const state = createNewGame(1020);
+    state.viewportBottomRow = 4;
+    const originalBelowViewport = getCell(state.world, 4, 8).type;
+    setCell(state.world, 4, 8, 'air');
+    setCell(state.world, 3, 3, 'air');
+
+    let triggered = false;
+    for (let index = 0; index < 200; index += 1) {
+      openShop(state, 'service');
+      closeModal(state);
+      if (state.activeEarthquake) {
+        triggered = true;
+        break;
+      }
+    }
+
+    expect(triggered).toBe(true);
+    expect(state.activeEarthquake?.regenerateFromRow).toBe(5);
+    expect(getCell(state.world, 4, 8).type).toBe(originalBelowViewport);
+    expect(getCell(state.world, 3, 3).type).toBe('air');
+  });
+
+  test('earthquake freezes controls until the tremor window fully ends', () => {
+    const state = createNewGame(1021);
+    state.activeEarthquake = {
+      id: 1,
+      remainingSeconds: 2,
+      totalSeconds: 2,
+      regenerateFromRow: 5,
+    };
+    state.player.position = { x: 6.5, y: 7.5 };
+    state.player.velocity = { x: 2, y: -3 };
+
+    tickGame(
+      state,
+      { left: true, right: false, up: true, down: false, consume: [], toggleInventory: true },
+      0.5,
+    );
+
+    expect(state.player.position).toEqual({ x: 6.5, y: 7.5 });
+    expect(state.player.velocity).toEqual({ x: 0, y: 0 });
+    expect(state.mode).toBe('gameplay');
+    expect(state.modal.type).toBe('none');
+    expect(state.activeEarthquake?.remainingSeconds).toBeCloseTo(1.5, 5);
+
+    tickGame(state, { left: false, right: false, up: false, down: false, consume: [] }, 1.6);
+
+    expect(state.activeEarthquake).toBeNull();
+
+    tickGame(
+      state,
+      { left: false, right: false, up: false, down: false, consume: [], toggleInventory: true },
+      0,
+    );
+
+    expect(state.mode).toBe('modal');
+    expect(state.modal.type).toBe('inventory');
+  });
+
+  test('testing mode can manually trigger an earthquake with the dedicated control flag', () => {
+    const state = createNewGame(1022, { testingMode: true });
+    state.viewportBottomRow = 4;
+    const originalBelowViewport = getCell(state.world, 5, 9).type;
+    setCell(state.world, 5, 9, 'air');
+
+    tickGame(
+      state,
+      { left: false, right: false, up: false, down: false, consume: [], triggerEarthquake: true },
+      0,
+    );
+
+    expect(state.activeEarthquake).not.toBeNull();
+    expect(state.activeEarthquake?.regenerateFromRow).toBe(5);
+    expect(state.toast).toBe('Testing earthquake triggered.');
+    expect(getCell(state.world, 5, 9).type).toBe(originalBelowViewport);
+
+    const nonTestingState = createNewGame(1022);
+    tickGame(
+      nonTestingState,
+      { left: false, right: false, up: false, down: false, consume: [], triggerEarthquake: true },
+      0,
+    );
+    expect(nonTestingState.activeEarthquake).toBeNull();
   });
 
   test('shop trigger is forgiving when the digger approaches close to a shop', () => {

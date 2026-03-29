@@ -2,14 +2,14 @@
 
 ## Plan
 
-- [x] Capture existing-project intake and work order for the consumable-animation request.
-- [x] Add a gameplay-owned consumable effect state without changing current consumable mechanics.
-- [x] Render distinct consumable-use animations in the Phaser scene.
+- [x] Refresh the existing-project intake and work order for the GA-polish request.
+- [x] Add a testing-only `W` hotkey that triggers the real earthquake path.
+- [x] Regenerate runtime sprite sheets and add a favicon from source scripts.
 - [x] Add targeted regression coverage and refresh the affected docs.
 - [x] Rerun verification.
 
 ## Review
 
-- Consumable use now has a clean gameplay-to-render contract: item mechanics still resolve in `logic.ts`, while `GameScene` reads a short-lived effect state to draw repair, fuel, blast, transport, and fissure feedback without coupling visuals to toast text or hotkey handling.
-- Follow-up polish replaced the first-pass procedural overlays with generated FX sprites, fixed the transporter landing point to a neutral surface spot, and reshaped TNT visuals away from the earlier sunburst look.
-- TNT now respects the same protected-surface rule as drilling, so explosives cannot erase row `0`.
+- Testing mode now exercises the real earthquake logic through a dedicated `W` control flag instead of a parallel debug path, so QA can validate the same regeneration and lockout rules the live game uses.
+- The generated asset pipeline is back in sync with the shipped browser build, including the fifth surface-shop sprite for the save balloon and a browser favicon.
+- Repo docs now describe Diggr as a GA-ready browser game and call out the reproducible asset-generation workflow.

@@ -59,3 +59,5 @@
 - Protected-terrain rules must apply to explosives too, not just drills. If row `0` is sacred for digging, TNT needs an explicit guard in its blast helper.
 - Surface interaction spacing is part of gameplay, not just layout. If a teleport or spawn needs a neutral landing zone, adjust pad geometry enough to create one instead of dropping the rig into a shaft or shop trigger.
 - Shop gating needs separate concepts for `left this pad` and `still moving from a forced relocation`. Fissurizer-style launches should suppress surface shops until the rig settles, even if it passes directly over a pad.
+- Post-modal world events should hook into the shared gameplay close path, not just individual DOM buttons, otherwise movement-dismiss and button-dismiss behavior drift apart.
+- Generated art can drift from runtime content if new sprite frames are added in config but not in the source generators. Surface-pad count and sprite-frame mappings need to be treated as one change.

@@ -3,7 +3,7 @@
 ## Header
 
 - Project: `Diggr`
-- Work order ID: `WO-2026-03-29-consumable-fx`
+- Work order ID: `WO-2026-03-29-ga-polish`
 - Requester: `Davis Wang`
 - Owner: `Producer`
 - Project mode: `existing_project`
@@ -12,33 +12,32 @@
 
 ## Objective
 
-Add in-world use animations for consumable items so the player gets immediate visual feedback when triggering repair, refuel, explosive, and teleport-style consumables. The implementation should be additive, preserve the current gameplay results, and use a targeted refresh limited to the stale/request-affected code and docs.
+Add a targeted GA-polish pass that introduces a testing-only manual earthquake hotkey, regenerates all shipped sprite sheets plus a favicon from source, and refreshes docs so the project is described as a GA-ready browser game instead of a prototype. The implementation should preserve current gameplay behavior and stay within a targeted refresh limited to the request-affected code, assets, and docs.
 
 ## Requested Change
 
-Add animations for using consumable items, using creative liberty based on each item description.
+Add a testing-mode hotkey `W` that manually triggers the real earthquake path, add a favicon, regenerate all sprite sheets so the checked-in assets match the current game, and update the docs to position Diggr as GA-ready rather than a prototype.
 
 ## Existing Behavior To Preserve
 
-- Consumable hotkeys and inventory usage remain unchanged.
-- Repair and fuel items still apply their current numeric effects instantly.
-- TNT items still cancel active drilling and clear their current blast areas.
-- Teleport items still move the rig to their current destinations with the same immediate gameplay outcome.
-- Existing shop, inventory, digging, save/load, and HUD behavior should remain intact.
+- Existing earthquake behavior remains intact for non-testing gameplay.
+- World generation remains seeded and deterministic.
+- Current sprite language and approved icon direction should be preserved while regenerating from source.
+- Current digging, consumables, save/load, shops, and HUD behavior should remain intact.
 
 ## In Scope
 
-- Add a canonical consumable-effect state to gameplay.
-- Render distinct use animations for each consumable family in the Phaser scene.
-- Add targeted regression coverage for effect-state creation/expiry and visual-family mapping.
-- Refresh the minimal docs required for the landed behavior.
+- Add a testing-only manual input hook for the existing earthquake system.
+- Regenerate runtime sprite sheets and browser-facing favicon from repo scripts.
+- Add targeted regression coverage for the new testing control.
+- Refresh the minimal docs required for the landed behavior and GA-ready positioning.
 
 ## Out Of Scope
 
-- Rebalancing consumable prices or item stats.
-- Adding new consumable items.
-- Reworking consumable shop layout or controls.
-- Audio, particle-system infrastructure, or sprite-sheet authoring for this pass.
+- Rebalancing ore, shops, hazards, or earthquake odds.
+- Redesigning the current shop UI or art direction.
+- Reworking the visible mine or introducing whole-world rerolls.
+- Audio or non-requested visual redesign.
 - Full artifact-chain regeneration beyond intake and work order.
 
 ## Inputs
@@ -48,24 +47,27 @@ Add animations for using consumable items, using creative liberty based on each 
 - [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md)
 - [logic.ts](/Users/davis.wang/Documents/diggr/src/game/logic.ts)
 - [GameScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/GameScene.ts)
-- [rendering.ts](/Users/davis.wang/Documents/diggr/src/phaser/rendering.ts)
+- [index.html](/Users/davis.wang/Documents/diggr/index.html)
+- [generateSpriteSheets.mjs](/Users/davis.wang/Documents/diggr/scripts/generateSpriteSheets.mjs)
+- [package.json](/Users/davis.wang/Documents/diggr/package.json)
 - [logic.test.ts](/Users/davis.wang/Documents/diggr/tests/logic.test.ts)
-- [rendering.test.ts](/Users/davis.wang/Documents/diggr/tests/rendering.test.ts)
+- [app.test.ts](/Users/davis.wang/Documents/diggr/tests/app.test.ts)
 
 ## Artifact Status Inputs
 
 | Artifact | Status | Notes |
 | --- | --- | --- |
-| `docs/project/00-existing-project-intake.md` | `reusable` | Created in this loop and remains the canonical brownfield intake. |
-| `docs/project/01-work-order.md` | `reusable` | Canonical scoped work packet for this loop. |
-| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Needs feature summary refresh after implementation. |
-| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Needs runtime contract refresh for consumable effects. |
-| `Consumable gameplay/render code` | `refresh_required` | This is the implementation target. |
+| `docs/project/00-existing-project-intake.md` | `refresh_required` | Retargeted to the GA-polish request in this loop. |
+| `docs/project/01-work-order.md` | `refresh_required` | Retargeted to the GA-polish request in this loop. |
+| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Needs GA-ready positioning and asset-pipeline command refresh. |
+| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Needs manual-testing hook and generator ownership refresh. |
+| `Testing control + asset generators` | `refresh_required` | This is the implementation target. |
 | `Unrelated economy/shop/deploy artifacts` | `out_of_scope` | Preserve unless a regression is introduced. |
 
 ## Required Outputs
 
-- Distinct consumable-use animations landed in the local browser build.
+- Testing-only `W` earthquake trigger landed in the local browser build.
+- Regenerated sprite sheets and favicon landed from source scripts.
 - Updated intake/work-order artifacts under `docs/project/`.
 - Targeted docs refresh in repo-level docs.
 - Passing `npm test` and `npm run build`.
@@ -75,17 +77,16 @@ Add animations for using consumable items, using creative liberty based on each 
 - Existing-project mode uses targeted refresh only.
 - Preserve existing working behavior unless the request explicitly changes it.
 - Browser-first validation and local runnable build remain required.
-- Keep the implementation data-driven and testable instead of burying timers inside raw scene code.
+- The testing hook must call the real earthquake gameplay path rather than a debug-only fake implementation.
 
 ## Escalation Boundary
 
-The owner may choose the visual treatment, timing, and rendering geometry for each consumable animation. Any change to item mechanics, hotkey scheme, platform assumptions, or broader UI flows would require escalation.
+The owner may choose the exact testing hotkey plumbing, favicon treatment, and asset-generation workflow as long as it stays browser-first, reproducible, and preserves current behavior. Any change to gameplay balance, visual direction, or release stack would require escalation.
 
 ## Done When
 
-- Each consumable family has a visible, distinct use animation in the Phaser scene.
-- Consumable mechanical outcomes still match prior behavior.
-- Effect state creation and expiry are covered by tests.
+- Testing mode can manually trigger the real earthquake path.
+- Runtime sprite sheets and favicon regenerate cleanly from repo scripts.
 - Repo docs and project artifacts reflect the new behavior.
 - Local verification passes.
 

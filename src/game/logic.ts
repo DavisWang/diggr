@@ -2,6 +2,8 @@ import {
   BLOCK_DEFS,
   CONSUMABLE_DEFS,
   CONSUMABLE_TYPES,
+  EARTHQUAKE_DURATION_SECONDS,
+  EARTHQUAKE_SHOP_CLOSE_CHANCE,
   ENTRY_COLUMN,
   DRILL_COMPLETION_INSET,
   EQUIPMENT_TIERS,
@@ -32,6 +34,7 @@ import {
   getCell,
   isDestructibleType,
   isSolidType,
+  regenerateWorldBelowRow,
   setCell,
 } from './world';
 import type { DrillMiningMode } from './world';
@@ -75,6 +78,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
     modal: { type: 'none' },
     modalDismissGraceRemaining: 0,
     activeConsumableEffect: null,
+    activeEarthquake: null,
     world,
     player,
     meta: {
@@ -83,10 +87,13 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
       updatedAt: new Date().toISOString(),
       hasVisitedUnderground: false,
       testingMode,
+      shopCloseCount: 0,
+      earthquakeCount: 0,
     },
     toast: testingMode ? 'Testing mode active. Fuel, hull, and cash are boosted for sandbox runs.' : 'Dig down, sell ore, and upgrade the rig.',
     blockedShopUntilExit: null,
     blockSurfaceShopsUntilStop: false,
+    viewportBottomRow: 0,
   };
 }
 
@@ -94,9 +101,13 @@ export function restoreGame(state: GameState): GameState {
   normalizeSaveStationResumeState(state);
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
   state.activeConsumableEffect = state.activeConsumableEffect ?? null;
+  state.activeEarthquake = state.activeEarthquake ?? null;
   state.blockSurfaceShopsUntilStop = Boolean(state.blockSurfaceShopsUntilStop);
+  state.viewportBottomRow = Math.max(0, Math.floor(state.viewportBottomRow ?? 0));
   state.player.activeDrill = state.player.activeDrill ?? null;
   state.meta.testingMode = Boolean(state.meta.testingMode);
+  state.meta.shopCloseCount = state.meta.shopCloseCount ?? 0;
+  state.meta.earthquakeCount = state.meta.earthquakeCount ?? 0;
   syncPlayerDerived(state.player, state.meta.testingMode);
   ensureRows(state.world, 0, Math.max(120, Math.ceil(state.player.position.y) + 40));
   return state;
@@ -113,6 +124,19 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
     state.activeConsumableEffect = null;
     state.player.velocity.x *= 0.85;
     state.player.velocity.y *= 0.85;
+    return result;
+  }
+
+  if (controls.viewportBottomRow !== undefined) {
+    state.viewportBottomRow = Math.max(0, Math.floor(controls.viewportBottomRow));
+  }
+
+  if (controls.triggerEarthquake && state.meta.testingMode && state.mode === 'gameplay') {
+    startEarthquake(state, 'manual');
+  }
+
+  if (state.activeEarthquake) {
+    tickActiveEarthquake(state, dtSeconds);
     return result;
   }
 
@@ -140,6 +164,10 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
       state.modalDismissGraceRemaining <= 0
     ) {
       closeModal(state);
+      if (state.activeEarthquake) {
+        tickActiveEarthquake(state, dtSeconds);
+        return result;
+      }
     } else {
       state.player.velocity.x *= 0.85;
       state.player.velocity.y *= 0.85;
@@ -336,13 +364,15 @@ export function openShop(state: GameState, shop: ShopType): void {
 }
 
 export function closeModal(state: GameState): void {
-  if (isDismissibleShopModal(state.modal.type)) {
-    state.blockedShopUntilExit = state.modal.type;
+  const closingModalType = state.modal.type;
+  if (isDismissibleShopModal(closingModalType)) {
+    state.blockedShopUntilExit = closingModalType;
   }
 
   state.modal = { type: 'none' };
   state.modalDismissGraceRemaining = 0;
   state.mode = state.status === 'game_over' ? 'modal' : 'gameplay';
+  maybeTriggerEarthquake(state, closingModalType);
 }
 
 export function getDerivedStats(player: PlayerState): {
@@ -561,6 +591,58 @@ function updateConsumableEffect(state: GameState, dtSeconds: number): void {
   if (effect.remainingSeconds <= 0) {
     state.activeConsumableEffect = null;
   }
+}
+
+function tickActiveEarthquake(state: GameState, dtSeconds: number): void {
+  const earthquake = state.activeEarthquake;
+  if (!earthquake) {
+    return;
+  }
+
+  state.player.velocity = { x: 0, y: 0 };
+  state.player.airborne = false;
+  state.player.airbornePeakY = state.player.position.y;
+  earthquake.remainingSeconds = Math.max(0, earthquake.remainingSeconds - dtSeconds);
+
+  if (earthquake.remainingSeconds <= 0) {
+    state.activeEarthquake = null;
+    state.toast = 'The tremors settle.';
+  }
+}
+
+function maybeTriggerEarthquake(state: GameState, closedModalType: ModalState['type']): void {
+  if (!isDismissibleShopModal(closedModalType)) {
+    return;
+  }
+
+  const closeIndex = state.meta.shopCloseCount ?? 0;
+  state.meta.shopCloseCount = closeIndex + 1;
+  const random = mulberry32(hashSeed(state.world.seed, 7_113 + closeIndex));
+  if (random() > EARTHQUAKE_SHOP_CLOSE_CHANCE) {
+    return;
+  }
+
+  startEarthquake(state, 'shop_close');
+}
+
+function startEarthquake(state: GameState, trigger: 'manual' | 'shop_close'): void {
+  if (state.activeEarthquake) {
+    return;
+  }
+
+  const regenerateFromRow = Math.max(1, Math.floor(state.viewportBottomRow) + 1);
+  regenerateWorldBelowRow(state.world, regenerateFromRow);
+  state.meta.earthquakeCount = (state.meta.earthquakeCount ?? 0) + 1;
+  state.activeEarthquake = {
+    id: state.meta.earthquakeCount,
+    remainingSeconds: EARTHQUAKE_DURATION_SECONDS,
+    totalSeconds: EARTHQUAKE_DURATION_SECONDS,
+    regenerateFromRow,
+  };
+  state.toast =
+    trigger === 'manual'
+      ? 'Testing earthquake triggered.'
+      : 'Earthquake! The mine has shifted below you.';
 }
 
 function getConsumableEffectDuration(type: ConsumableType): number {

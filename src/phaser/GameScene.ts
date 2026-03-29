@@ -1,5 +1,13 @@
 import Phaser from 'phaser';
-import { CONSUMABLE_EFFECT_FRAME_SIZE, SURFACE_PADS, SURFACE_SKY_ROWS, TILE_SIZE, WORLD_WIDTH } from '../config/content';
+import {
+  CONSUMABLE_EFFECT_FRAME_SIZE,
+  EARTHQUAKE_DURATION_SECONDS,
+  EARTHQUAKE_SHAKE_INTENSITY,
+  SURFACE_PADS,
+  SURFACE_SKY_ROWS,
+  TILE_SIZE,
+  WORLD_WIDTH,
+} from '../config/content';
 import { getConsumableEffectRenderState, getDrillRenderState } from '../game/logic';
 import { ensureRows, getCell } from '../game/world';
 import type { ControlState } from '../types';
@@ -50,6 +58,7 @@ export class GameScene extends Phaser.Scene {
   private tileSize = TILE_SIZE;
   private lastFacing: DiggerFacing = 'right';
   private transientState: { state: DiggerRenderState; remaining: number } | null = null;
+  private lastHandledEarthquakeId: number | null = null;
 
   constructor() {
     super(GameScene.KEY);
@@ -96,6 +105,7 @@ export class GameScene extends Phaser.Scene {
       f: Phaser.Input.Keyboard.KeyCodes.F,
       v: Phaser.Input.Keyboard.KeyCodes.V,
       q: Phaser.Input.Keyboard.KeyCodes.Q,
+      w: Phaser.Input.Keyboard.KeyCodes.W,
     }) as Record<string, Phaser.Input.Keyboard.Key>;
 
     this.shopSprites = SURFACE_PADS.map((pad) => {
@@ -144,6 +154,8 @@ export class GameScene extends Phaser.Scene {
       down: Boolean(this.cursors?.down.isDown),
       consume: [],
       toggleInventory: false,
+      viewportBottomRow: (this.cameras.main.worldView.y + this.cameras.main.height) / this.tileSize,
+      triggerEarthquake: false,
     };
 
     const consumeMap: Record<string, ControlState['consume'][number]> = {
@@ -163,10 +175,20 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
+    if (Phaser.Input.Keyboard.JustDown(this.consumableKeys.w)) {
+      controls.triggerEarthquake = true;
+    }
+
     const previousHealth = state.player.health;
     const result = app.tick(controls, delta / 1000);
     const nextState = app.getState();
     if (nextState) {
+      if (nextState.activeEarthquake && nextState.activeEarthquake.id !== this.lastHandledEarthquakeId) {
+        this.cameras.main.shake(EARTHQUAKE_DURATION_SECONDS * 1000, EARTHQUAKE_SHAKE_INTENSITY);
+        this.lastHandledEarthquakeId = nextState.activeEarthquake.id;
+      } else if (!nextState.activeEarthquake) {
+        this.lastHandledEarthquakeId = null;
+      }
       this.updateTransientState(nextState, controls, result?.toast, delta / 1000, previousHealth);
     }
 

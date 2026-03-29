@@ -14,6 +14,8 @@
 - Add a modal grace-delay regression so shop dismissal from movement does not fire on the same held keypress that opened the shop.
 - Keep a regression around the actual grace duration range so it does not drift back to a near-instant dismiss.
 - Inventory UI needs a regression that only owned consumables render, so the quick-check modal stays readable.
+- Rare event systems tied to modal close need tests through the shared close path and must assert that visible rows stay untouched while below-viewport rows rebuild.
+- Testing-only hooks should still call the real gameplay path and need a regression that proves non-testing saves do not get the same control behavior for free.
 - Add a typed close-path regression for non-shop modals when shop-exit gating exists. Inventory should not poison surface shop re-entry logic.
 - Cover game-over recovery at the app-shell level. Button click tests alone miss broken scene transitions.
 - Add a blocked-thrust fuel regression so pressing into a ceiling does not silently drain the tank.

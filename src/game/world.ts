@@ -67,29 +67,8 @@ export function ensureChunk(world: WorldState, chunkIndex: number): WorldChunk {
     return existing;
   }
 
-  const startRow = chunkIndex * world.chunkSize;
-  const chunkSeed = hashSeed(world.seed, chunkIndex + 1013);
-  const random = mulberry32(chunkSeed);
-  const rows: Record<string, BlockCell[]> = {};
-
-  for (let offset = 0; offset < world.chunkSize; offset += 1) {
-    const rowIndex = startRow + offset;
-    rows[String(rowIndex)] = Array.from({ length: world.width }, (_, x) => ({
-      type: generateBlockType(random, rowIndex, x),
-      discovered: Boolean(world.discoveredCells[cellKey(x, rowIndex)]),
-    }));
-  }
-
-  carveCaverns(rows, startRow, world.width, world.chunkSize, random);
-
-  const chunk: WorldChunk = {
-    index: chunkIndex,
-    seed: chunkSeed,
-    rows,
-  };
-
+  const chunk = buildChunk(world, chunkIndex);
   world.chunks[String(chunkIndex)] = chunk;
-  applyOverrides(world, chunk);
   return chunk;
 }
 
@@ -151,6 +130,57 @@ export function discoverCell(world: WorldState, x: number, row: number): void {
   world.discoveredCells[key] = true;
   const cell = getCell(world, x, row);
   cell.discovered = true;
+}
+
+export function regenerateWorldBelowRow(world: WorldState, startRow: number): void {
+  const safeStartRow = Math.max(1, Math.floor(startRow));
+  pruneKeysFromRow(world.destroyedCells, safeStartRow);
+  pruneKeysFromRow(world.discoveredCells, safeStartRow);
+
+  for (const [chunkKey, existingChunk] of Object.entries(world.chunks)) {
+    const chunkIndex = Number(chunkKey);
+    const chunkStartRow = chunkIndex * world.chunkSize;
+    const chunkEndRow = chunkStartRow + world.chunkSize - 1;
+    if (chunkEndRow < safeStartRow) {
+      continue;
+    }
+
+    const rebuiltChunk = buildChunk(world, chunkIndex);
+    if (chunkStartRow >= safeStartRow) {
+      world.chunks[chunkKey] = rebuiltChunk;
+      continue;
+    }
+
+    for (let row = safeStartRow; row <= chunkEndRow; row += 1) {
+      existingChunk.rows[String(row)] = rebuiltChunk.rows[String(row)];
+    }
+  }
+}
+
+function buildChunk(world: WorldState, chunkIndex: number): WorldChunk {
+  const startRow = chunkIndex * world.chunkSize;
+  const chunkSeed = hashSeed(world.seed, chunkIndex + 1013);
+  const random = mulberry32(chunkSeed);
+  const rows: Record<string, BlockCell[]> = {};
+
+  for (let offset = 0; offset < world.chunkSize; offset += 1) {
+    const rowIndex = startRow + offset;
+    rows[String(rowIndex)] = Array.from({ length: world.width }, (_, x) => ({
+      type: generateBlockType(random, rowIndex, x),
+      discovered: Boolean(world.discoveredCells[cellKey(x, rowIndex)]),
+    }));
+  }
+
+  carveCaverns(rows, startRow, world.width, world.chunkSize, random);
+
+  const chunk: WorldChunk = {
+    index: chunkIndex,
+    seed: chunkSeed,
+    rows,
+  };
+
+  applyOverrides(world, chunk);
+  return chunk;
 }
 
 function generateBlockType(random: () => number, row: number, x: number): BlockType {
@@ -219,6 +249,15 @@ function carveCaverns(
 
 function sumWeights(weights: DepthBandConfig['weights']): number {
   return Object.values(weights).reduce((total, value) => total + value, 0);
+}
+
+function pruneKeysFromRow(record: Record<string, true>, startRow: number): void {
+  for (const key of Object.keys(record)) {
+    const [, rowText] = key.split(',');
+    if (Number(rowText) >= startRow) {
+      delete record[key];
+    }
+  }
 }
 
 function applyOverrides(world: WorldState, chunk: WorldChunk): void {

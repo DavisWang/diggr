@@ -8,6 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "generate:sprites": "node scripts/generateSpriteSheets.mjs",
+    "generate:assets": "npm run generate:sprites && python3 scripts/generate_upgrade_shop_icons.py && python3 scripts/generate_consumable_shop_icons.py && python3 scripts/generate_refinery_shop_icons.py",
     "test": "vitest run",
     "test:watch": "vitest"
   },

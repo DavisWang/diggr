@@ -137,6 +137,13 @@ export interface ActiveConsumableEffectState {
   totalSeconds: number;
 }
 
+export interface ActiveEarthquakeState {
+  id: number;
+  remainingSeconds: number;
+  totalSeconds: number;
+  regenerateFromRow: number;
+}
+
 export interface WorldChunk {
   index: number;
   seed: number;
@@ -190,6 +197,8 @@ export interface GameMeta {
   updatedAt: string;
   hasVisitedUnderground: boolean;
   testingMode: boolean;
+  shopCloseCount: number;
+  earthquakeCount: number;
 }
 
 export interface GameState {
@@ -198,12 +207,14 @@ export interface GameState {
   modal: ModalState;
   modalDismissGraceRemaining: number;
   activeConsumableEffect: ActiveConsumableEffectState | null;
+  activeEarthquake: ActiveEarthquakeState | null;
   world: WorldState;
   player: PlayerState;
   meta: GameMeta;
   toast: string | null;
   blockedShopUntilExit: ShopType | null;
   blockSurfaceShopsUntilStop: boolean;
+  viewportBottomRow: number;
 }
 
 export interface SaveData {
@@ -219,6 +230,8 @@ export interface ControlState {
   down: boolean;
   consume: ConsumableType[];
   toggleInventory?: boolean;
+  viewportBottomRow?: number;
+  triggerEarthquake?: boolean;
 }
 
 export interface TickResult {

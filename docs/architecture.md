@@ -4,6 +4,7 @@
 
 - `Phaser` owns rendering, camera, keyboard input, and the game loop.
 - `src/game/` owns deterministic world generation, player rules, economy actions, consumable effects, and save-ready state.
+- Generated visual assets remain repo-owned source artifacts, not ad hoc outputs: sprite sheets and favicon are regenerated from `scripts/` so browser builds stay in sync with runtime content.
 - `src/ui/renderers.ts` owns the title screen, HUD, and modal overlays as plain DOM so UI flows can be regression-tested without driving a real browser.
 
 ## Runtime boundaries
@@ -23,6 +24,7 @@
 - The digger uses custom collision and movement rules over a tile world instead of leaning on Phaser physics for destructible terrain behavior.
 - Shops are surface pads that open modal overlays when the rig settles onto them; gameplay pauses while a modal is open.
 - Hidden lava is stored as its own block type but rendered as dirt until revealed through interaction.
+- Shop closing can rarely trigger an earthquake event that locks controls briefly and rebuilds only the unseen mine rows below the current browser viewport.
 
 ## Timed drilling model
 
@@ -41,9 +43,18 @@
 - `GameScene` renders those effects through a dedicated sprite-backed FX layer, separate from terrain/drill rendering, so repair, fuel, TNT, transporter, and fissurizer visuals can evolve without changing item mechanics.
 - Consumable FX art is generated into `src/assets/sprites/consumable-effects-sheet.png` and selected through pure frame/layout helpers in `src/phaser/rendering.ts`.
 
+## Earthquake event model
+
+- Closing a dismissible shop modal increments a deterministic close counter on gameplay state.
+- A seeded rare-roll check can start `activeEarthquake` after that close, which keeps the event save-safe and testable instead of scene-random.
+- Testing mode can also start the same event path explicitly through a dedicated `W` control flag, so debug behavior exercises the real gameplay earthquake code instead of a separate mock path.
+- Earthquakes freeze player movement and control handling for their duration, while `GameScene` handles the camera shake once per quake id.
+- The world layer rebuilds only rows below `viewportBottomRow + 1`, preserving currently visible terrain and reusing the same seeded generation logic the mine already uses elsewhere.
+
 ## Tuning model
 
 - Upgrade stats, consumable prices, ore values, depth bands, and physics constants all live in `src/config/content.ts`.
+- Sprite sheets and favicon are generated from `scripts/generateSpriteSheets.mjs` plus the icon-specific generators, then consumed directly by the browser build.
 - The numbers are meant to be playable defaults, not final balance.
 - Future tuning should change config data first before changing gameplay code.
 

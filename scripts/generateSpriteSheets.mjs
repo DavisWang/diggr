@@ -3,6 +3,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 
 const OUTPUT_DIR = path.resolve('src/assets/sprites');
+const PUBLIC_DIR = path.resolve('public');
 
 const palette = {
   transparent: [0, 0, 0, 0],
@@ -91,6 +92,7 @@ const shopFrames = [
   drawShop('mint', 'C'),
   drawShop('violet', 'R'),
   drawShop('rose', 'S'),
+  drawSaveBalloon(),
 ];
 
 const consumableEffectFrames = [
@@ -443,6 +445,25 @@ function drawShop(accent, letter) {
   drawLetter(canvas, 6, 1, letter, 'cream');
   setPixel(canvas, 5, 15, 'dirtDark');
   setPixel(canvas, 10, 15, 'dirtDark');
+  return canvas;
+}
+
+function drawSaveBalloon() {
+  const canvas = createFrame();
+  fillRect(canvas, 2, 2, 12, 4, 'gold');
+  fillRect(canvas, 1, 4, 14, 2, 'gold');
+  fillRect(canvas, 4, 6, 8, 2, 'goldBright');
+  fillRect(canvas, 5, 8, 2, 4, 'cream');
+  fillRect(canvas, 9, 8, 2, 4, 'cream');
+  line(canvas, 6, 12, 5, 15, 'bronzeDark');
+  line(canvas, 10, 12, 11, 15, 'bronzeDark');
+  fillRect(canvas, 4, 1, 8, 1, 'goldBright');
+  frameRect(canvas, 2, 2, 12, 4, 'outline');
+  line(canvas, 1, 4, 14, 4, 'outline');
+  setPixel(canvas, 6, 3, 'cream');
+  setPixel(canvas, 9, 3, 'cream');
+  setPixel(canvas, 7, 7, 'outline');
+  setPixel(canvas, 8, 7, 'outline');
   return canvas;
 }
 
@@ -836,6 +857,36 @@ function blit(target, source, offsetX, offsetY) {
   }
 }
 
+function scaleBlit(target, source, offsetX, offsetY, scale) {
+  for (let y = 0; y < source.height; y += 1) {
+    for (let x = 0; x < source.width; x += 1) {
+      const sourceIndex = (y * source.width + x) * 4;
+      const alpha = source.pixels[sourceIndex + 3];
+      if (alpha === 0) {
+        continue;
+      }
+
+      for (let dy = 0; dy < scale; dy += 1) {
+        for (let dx = 0; dx < scale; dx += 1) {
+          const targetIndex = ((offsetY + y * scale + dy) * target.width + (offsetX + x * scale + dx)) * 4;
+          target.pixels[targetIndex] = source.pixels[sourceIndex];
+          target.pixels[targetIndex + 1] = source.pixels[sourceIndex + 1];
+          target.pixels[targetIndex + 2] = source.pixels[sourceIndex + 2];
+          target.pixels[targetIndex + 3] = alpha;
+        }
+      }
+    }
+  }
+}
+
+function buildFavicon() {
+  const canvas = createCanvas(32, 32);
+  fillRect(canvas, 0, 0, 32, 32, 'steelDark');
+  frameRect(canvas, 0, 0, 32, 32, 'goldBright');
+  scaleBlit(canvas, drawDigger({ antenna: true, treads: 1 }), 8, 8, 1);
+  return canvas;
+}
+
 function scatter(canvas, points) {
   for (const [x, y, color] of points) {
     setPixel(canvas, x, y, color);
@@ -962,7 +1013,9 @@ const CRC_TABLE = new Uint32Array(
 );
 
 fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+fs.mkdirSync(PUBLIC_DIR, { recursive: true });
 writePng(path.join(OUTPUT_DIR, 'terrain-sheet.png'), buildSheet(terrainFrames, 4));
 writePng(path.join(OUTPUT_DIR, 'digger-sheet.png'), buildSheet(diggerFrames, 5));
 writePng(path.join(OUTPUT_DIR, 'surface-shops.png'), buildSheet(shopFrames, 4));
 writePng(path.join(OUTPUT_DIR, 'consumable-effects-sheet.png'), buildSheet(consumableEffectFrames, 5));
+writePng(path.join(PUBLIC_DIR, 'favicon.png'), buildFavicon());
