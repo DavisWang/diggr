@@ -115,22 +115,26 @@ describe('sprite rendering helpers', () => {
   test('consumable effects map each item family to a distinct visual style', () => {
     expect(getConsumableEffectStyle({ type: 'repair_nanobot', progress: 0.2 })).toMatchObject({
       kind: 'repair',
-      particleCount: 5,
+      widthTiles: 1.9,
     });
     expect(getConsumableEffectStyle({ type: 'large_fuel_tank', progress: 0.2 })).toMatchObject({
       kind: 'fuel',
-      particleCount: 5,
+      heightTiles: 2.35,
     });
     expect(getConsumableEffectStyle({ type: 'large_tnt', progress: 0.2 })).toMatchObject({
       kind: 'blast',
-      radiusTiles: 2.45,
+      widthTiles: 2.8,
     });
     expect(getConsumableEffectStyle({ type: 'matter_transporter', progress: 0.2 })).toMatchObject({
       kind: 'transport',
+      offsetYTiles: -0.32,
     });
     expect(getConsumableEffectStyle({ type: 'quantum_fissurizer', progress: 0.2 })).toMatchObject({
       kind: 'fissure',
     });
+    expect(getConsumableEffectStyle({ type: 'large_tnt', progress: 0.2 }).frame).not.toBe(
+      getConsumableEffectStyle({ type: 'matter_transporter', progress: 0.2 }).frame,
+    );
   });
 
   test('drill overlay keeps real block art visible for soft blocks and ore', () => {

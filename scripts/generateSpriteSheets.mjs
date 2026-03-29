@@ -93,6 +93,17 @@ const shopFrames = [
   drawShop('rose', 'S'),
 ];
 
+const consumableEffectFrames = [
+  ...drawRepairEffectFrames('small'),
+  ...drawRepairEffectFrames('large'),
+  ...drawFuelEffectFrames('small'),
+  ...drawFuelEffectFrames('large'),
+  ...drawBlastEffectFrames('small'),
+  ...drawBlastEffectFrames('large'),
+  ...drawTransportEffectFrames(),
+  ...drawFissureEffectFrames(),
+];
+
 function drawDirt() {
   const canvas = createFrame();
   fillRect(canvas, 0, 0, 16, 16, 'dirtMid');
@@ -525,6 +536,155 @@ function drawDigger(options) {
   return canvas;
 }
 
+function drawRepairEffectFrames(size) {
+  return [0, 1, 2, 3, 4].map((frame) => drawRepairEffectFrame(size, frame));
+}
+
+function drawRepairEffectFrame(size, frame) {
+  const canvas = createFrame(32);
+  const coreColor = size === 'large' ? 'grassMid' : 'mint';
+  const glowColor = size === 'large' ? 'grassLight' : 'cream';
+  const botColor = size === 'large' ? 'silverBright' : 'silverMid';
+  const ringRadius = size === 'large' ? 11 : 9;
+  const phase = frame * 0.45;
+
+  drawHalo(canvas, 16, 16, ringRadius + frame, coreColor, glowColor);
+  drawRepairCross(canvas, 16, 16, size === 'large' ? 4 : 3, glowColor);
+
+  const botCount = size === 'large' ? 6 : 4;
+  for (let index = 0; index < botCount; index += 1) {
+    const angle = phase + (index / botCount) * Math.PI * 2;
+    const orbit = ringRadius + 2 + ((index + frame) % 2);
+    const x = Math.round(16 + Math.cos(angle) * orbit);
+    const y = Math.round(16 + Math.sin(angle) * orbit);
+    drawBot(canvas, x, y, botColor, glowColor);
+  }
+
+  scatter(canvas, [
+    [11 + frame, 7, glowColor],
+    [20 - frame, 8, glowColor],
+    [8, 21 - frame, glowColor],
+    [23, 22 - frame, glowColor],
+  ]);
+  return canvas;
+}
+
+function drawFuelEffectFrames(size) {
+  return [0, 1, 2, 3, 4].map((frame) => drawFuelEffectFrame(size, frame));
+}
+
+function drawFuelEffectFrame(size, frame) {
+  const canvas = createFrame(32);
+  const columnColor = size === 'large' ? 'runiteMid' : 'artifactCyan';
+  const shineColor = 'cream';
+  const reservoirColor = size === 'large' ? 'runiteBright' : 'runiteMid';
+  const width = size === 'large' ? 10 : 8;
+  const left = Math.floor((32 - width) / 2);
+  const top = 7 - Math.min(frame, 1);
+  const height = 18;
+
+  fillRect(canvas, left, top, width, height, columnColor);
+  frameRect(canvas, left, top, width, height, 'outline');
+  fillRect(canvas, left + 2, top + 2 + ((4 - frame) % 2), width - 4, height - 6, reservoirColor);
+
+  for (let index = 0; index < (size === 'large' ? 5 : 3); index += 1) {
+    const x = left + 2 + index * 2;
+    const y = top + height - 4 - ((frame + index * 2) % 8);
+    fillRect(canvas, x, y, 2, 2, shineColor);
+  }
+
+  line(canvas, 16, 4 + frame, 16, 1, shineColor);
+  line(canvas, 15, 5 + frame, 12, 2 + frame, columnColor);
+  line(canvas, 17, 5 + frame, 20, 2 + frame, columnColor);
+  return canvas;
+}
+
+function drawBlastEffectFrames(size) {
+  return [0, 1, 2, 3, 4].map((frame) => drawBlastEffectFrame(size, frame));
+}
+
+function drawBlastEffectFrame(size, frame) {
+  const canvas = createFrame(32);
+  const smoke = size === 'large' ? 'rockMid' : 'rockDark';
+  const smokeLight = size === 'large' ? 'rockLight' : 'silverMid';
+  const fire = size === 'large' ? 'lavaHot' : 'artifactAmber';
+  const fireCore = size === 'large' ? 'goldBright' : 'cream';
+  const configs = size === 'large'
+    ? [
+        { x: 16, y: 12, r: 5 + frame },
+        { x: 10, y: 16, r: 4 + Math.min(frame, 3) },
+        { x: 22, y: 17, r: 4 + Math.min(frame, 4) },
+        { x: 15, y: 21, r: 5 + Math.max(frame - 1, 0) },
+      ]
+    : [
+        { x: 16, y: 13, r: 4 + frame },
+        { x: 11, y: 17, r: 3 + Math.min(frame, 3) },
+        { x: 20, y: 18, r: 3 + Math.min(frame, 3) },
+      ];
+
+  configs.forEach((config, index) => {
+    drawCloud(canvas, config.x, config.y, config.r, index % 2 === 0 ? smoke : smokeLight);
+  });
+
+  if (frame <= 3) {
+    drawCloud(canvas, 16, 16, size === 'large' ? 4 - frame * 0.4 : 3 - frame * 0.35, fire);
+    drawCloud(canvas, 16, 16, size === 'large' ? 2.4 - frame * 0.2 : 1.8 - frame * 0.2, fireCore);
+  }
+
+  if (frame >= 1) {
+    scatter(canvas, [
+      [5 + frame, 10, 'dirtDark'],
+      [25 - frame, 9 + frame, 'dirtDark'],
+      [8, 24 - frame, 'dirtDark'],
+      [22, 24 - frame, 'dirtDark'],
+    ]);
+  }
+
+  return canvas;
+}
+
+function drawTransportEffectFrames() {
+  return [0, 1, 2, 3, 4].map((frame) => {
+    const canvas = createFrame(32);
+    const beamLeft = 11;
+    const beamWidth = 10;
+    const beamTop = 4;
+    const beamHeight = 23;
+    fillRect(canvas, beamLeft, beamTop, beamWidth, beamHeight, 'artifactCyan');
+    fillRect(canvas, beamLeft + 2, beamTop + 1, beamWidth - 4, beamHeight - 2, 'runiteBright');
+    frameRect(canvas, beamLeft, beamTop, beamWidth, beamHeight, 'outline');
+
+    const ringY = 8 + frame * 4;
+    drawRing(canvas, 16, ringY, 7, 'cream');
+    drawRing(canvas, 16, 25 - frame * 3, 6, 'artifactCyan');
+    scatter(canvas, [
+      [12, 6 + frame, 'cream'],
+      [19, 5 + frame, 'cream'],
+      [13, 20 - frame, 'cream'],
+      [18, 22 - frame, 'cream'],
+    ]);
+    return canvas;
+  });
+}
+
+function drawFissureEffectFrames() {
+  return [0, 1, 2, 3, 4].map((frame) => {
+    const canvas = createFrame(32);
+    const originY = 22 - frame;
+    drawJaggedBolt(canvas, 16, originY, 10, 'artifactPink');
+    drawJaggedBolt(canvas, 16, originY, 6, 'mithriumBright');
+    drawBurst(canvas, 16, originY, 6 + frame * 2, 'artifactCyan');
+    drawBurst(canvas, 16, originY, 10 + frame * 2, 'artifactPink', true);
+    scatter(canvas, [
+      [11, 6 + frame, 'cream'],
+      [21, 7 + frame, 'cream'],
+      [9, 16 - frame, 'artifactPink'],
+      [23, 15 - frame, 'artifactCyan'],
+    ]);
+    return canvas;
+  });
+}
+
 function drawTreads(canvas, y, frame) {
   fillRect(canvas, 2, y, 12, 2, 'outline');
   fillRect(canvas, 3, y, 10, 2, 'steelDark');
@@ -552,8 +712,8 @@ function drawLetter(canvas, x, y, letter, color) {
   }
 }
 
-function createFrame() {
-  return createCanvas(16, 16);
+function createFrame(size = 16, height = size) {
+  return createCanvas(size, height);
 }
 
 function createCanvas(width, height) {
@@ -565,16 +725,97 @@ function createCanvas(width, height) {
 }
 
 function buildSheet(frames, columns) {
+  const frameWidth = frames[0]?.width ?? 16;
+  const frameHeight = frames[0]?.height ?? 16;
   const rows = Math.ceil(frames.length / columns);
-  const sheet = createCanvas(columns * 16, rows * 16);
+  const sheet = createCanvas(columns * frameWidth, rows * frameHeight);
 
   frames.forEach((frame, index) => {
-    const offsetX = (index % columns) * 16;
-    const offsetY = Math.floor(index / columns) * 16;
+    const offsetX = (index % columns) * frameWidth;
+    const offsetY = Math.floor(index / columns) * frameHeight;
     blit(sheet, frame, offsetX, offsetY);
   });
 
   return sheet;
+}
+
+function drawRepairCross(canvas, cx, cy, arm, color) {
+  fillRect(canvas, cx - 1, cy - arm, 3, arm * 2 + 1, color);
+  fillRect(canvas, cx - arm, cy - 1, arm * 2 + 1, 3, color);
+}
+
+function drawBot(canvas, cx, cy, bodyColor, eyeColor) {
+  fillRect(canvas, cx - 1, cy - 1, 3, 3, bodyColor);
+  frameRect(canvas, cx - 1, cy - 1, 3, 3, 'outline');
+  setPixel(canvas, cx, cy, eyeColor);
+}
+
+function drawHalo(canvas, cx, cy, radius, coreColor, accentColor) {
+  drawRing(canvas, cx, cy, radius, coreColor);
+  drawRing(canvas, cx, cy, Math.max(2, radius - 2), accentColor);
+}
+
+function drawCloud(canvas, cx, cy, radius, color) {
+  const offsets = [
+    [0, 0],
+    [-radius * 0.6, -radius * 0.15],
+    [radius * 0.55, -radius * 0.1],
+    [-radius * 0.2, radius * 0.45],
+    [radius * 0.25, radius * 0.4],
+  ];
+  for (const [dx, dy] of offsets) {
+    fillCircle(canvas, Math.round(cx + dx), Math.round(cy + dy), Math.max(1, Math.round(radius)), color);
+  }
+}
+
+function drawRing(canvas, cx, cy, radius, color) {
+  for (let angle = 0; angle < 360; angle += 12) {
+    const radians = (angle * Math.PI) / 180;
+    const x = Math.round(cx + Math.cos(radians) * radius);
+    const y = Math.round(cy + Math.sin(radians) * radius);
+    setPixel(canvas, x, y, color);
+    if (angle % 24 === 0) {
+      setPixel(canvas, x + (x >= cx ? -1 : 1), y, color);
+    }
+  }
+}
+
+function drawBurst(canvas, cx, cy, radius, color, diagonal = false) {
+  const rays = diagonal
+    ? [
+        [1, -1],
+        [-1, -1],
+        [1, 1],
+        [-1, 1],
+      ]
+    : [
+        [0, -1],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+      ];
+  for (const [dx, dy] of rays) {
+    line(canvas, cx, cy, cx + dx * radius, cy + dy * radius, color);
+  }
+}
+
+function drawJaggedBolt(canvas, cx, cy, length, color) {
+  line(canvas, cx, cy, cx - 3, cy - 4, color);
+  line(canvas, cx - 3, cy - 4, cx + 1, cy - 8, color);
+  line(canvas, cx + 1, cy - 8, cx - 2, cy - length, color);
+}
+
+function fillCircle(canvas, cx, cy, radius, color) {
+  const radiusSquared = radius * radius;
+  for (let y = cy - radius; y <= cy + radius; y += 1) {
+    for (let x = cx - radius; x <= cx + radius; x += 1) {
+      const dx = x - cx;
+      const dy = y - cy;
+      if (dx * dx + dy * dy <= radiusSquared) {
+        setPixel(canvas, x, y, color);
+      }
+    }
+  }
 }
 
 function blit(target, source, offsetX, offsetY) {
@@ -724,3 +965,4 @@ fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 writePng(path.join(OUTPUT_DIR, 'terrain-sheet.png'), buildSheet(terrainFrames, 4));
 writePng(path.join(OUTPUT_DIR, 'digger-sheet.png'), buildSheet(diggerFrames, 5));
 writePng(path.join(OUTPUT_DIR, 'surface-shops.png'), buildSheet(shopFrames, 4));
+writePng(path.join(OUTPUT_DIR, 'consumable-effects-sheet.png'), buildSheet(consumableEffectFrames, 5));

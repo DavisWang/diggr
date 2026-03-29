@@ -41,12 +41,20 @@ describe('game rules', () => {
     expect(state.player.maxHealth).toBe(10000);
     expect(state.player.maxFuel).toBe(10000);
     expect(state.player.cash).toBeGreaterThanOrEqual(999999);
+    expect(state.player.inventory.repair_nanobot).toBe(100);
+    expect(state.player.inventory.repair_microbot).toBe(100);
+    expect(state.player.inventory.small_fuel_tank).toBe(100);
+    expect(state.player.inventory.large_fuel_tank).toBe(100);
+    expect(state.player.inventory.small_tnt).toBe(100);
+    expect(state.player.inventory.large_tnt).toBe(100);
+    expect(state.player.inventory.matter_transporter).toBe(100);
+    expect(state.player.inventory.quantum_fissurizer).toBe(100);
 
     const startingCash = state.player.cash;
     const message = buyConsumable(state, 'large_tnt');
 
-    expect(message).toContain('Large TNT');
-    expect(state.player.inventory.large_tnt).toBe(1);
+    expect(message).toContain('Inventory cap reached');
+    expect(state.player.inventory.large_tnt).toBe(100);
     expect(state.player.cash).toBe(startingCash);
   });
 
@@ -411,19 +419,70 @@ describe('game rules', () => {
     }
   });
 
+  test('TNT cannot destroy the protected first surface layer', () => {
+    const state = createNewGame(1008);
+    state.player.position = { x: 6.5, y: 1.4 };
+    state.player.inventory.large_tnt = 1;
+    setCell(state.world, 5, 0, 'dirt');
+    setCell(state.world, 6, 0, 'bronzium_ore');
+    setCell(state.world, 7, 0, 'rock');
+
+    useConsumable(state, 'large_tnt');
+
+    expect(getCell(state.world, 5, 0).type).toBe('dirt');
+    expect(getCell(state.world, 6, 0).type).toBe('bronzium_ore');
+    expect(getCell(state.world, 7, 0).type).toBe('rock');
+  });
+
   test('teleport consumables obey their destination rules', () => {
     const state = createNewGame(1009);
     state.player.position = { x: 6.5, y: 22.5 };
     state.player.inventory.matter_transporter = 1;
     state.player.inventory.quantum_fissurizer = 1;
 
-    useConsumable(state, 'matter_transporter');
+    expect(useConsumable(state, 'matter_transporter')).toContain('surface');
     expect(state.player.position.y).toBeLessThan(0);
-    expect(state.player.position.x).toBeGreaterThan(9);
+    expect(state.player.position.x).toBeCloseTo(9.8, 1);
+
+    const afterTransport = tickGame(
+      state,
+      { left: false, right: false, up: false, down: false, consume: [] },
+      0.016,
+    );
+    expect(afterTransport.openedShop).toBeNull();
 
     useConsumable(state, 'quantum_fissurizer');
     expect(state.player.position.y).toBeLessThan(0);
     expect(Math.abs(state.player.velocity.x) + Math.abs(state.player.velocity.y)).toBeGreaterThan(0);
+  });
+
+  test('quantum fissurizer suppresses surface shop entry until the digger fully stops', () => {
+    const state = createNewGame(1010);
+    state.player.inventory.quantum_fissurizer = 1;
+
+    useConsumable(state, 'quantum_fissurizer');
+    state.player.position = { x: 8.3, y: -0.4 };
+    state.player.velocity = { x: 1.8, y: 0.6 };
+
+    const movingTick = tickGame(
+      state,
+      { left: false, right: false, up: false, down: false, consume: [] },
+      0.016,
+    );
+    expect(movingTick.openedShop).toBeNull();
+    expect(state.blockSurfaceShopsUntilStop).toBe(true);
+
+    state.player.position = { x: 8.3, y: -0.4 };
+    state.player.velocity = { x: 0, y: 0 };
+    state.player.airborne = false;
+
+    const settledTick = tickGame(
+      state,
+      { left: false, right: false, up: false, down: false, consume: [] },
+      0.016,
+    );
+    expect(state.blockSurfaceShopsUntilStop).toBe(false);
+    expect(settledTick.openedShop).toBe('refinery');
   });
 
   test('using consumables starts a visual effect state that later expires', () => {

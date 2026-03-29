@@ -11,3 +11,5 @@
 ## Review
 
 - Consumable use now has a clean gameplay-to-render contract: item mechanics still resolve in `logic.ts`, while `GameScene` reads a short-lived effect state to draw repair, fuel, blast, transport, and fissure feedback without coupling visuals to toast text or hotkey handling.
+- Follow-up polish replaced the first-pass procedural overlays with generated FX sprites, fixed the transporter landing point to a neutral surface spot, and reshaped TNT visuals away from the earlier sunburst look.
+- TNT now respects the same protected-surface rule as drilling, so explosives cannot erase row `0`.

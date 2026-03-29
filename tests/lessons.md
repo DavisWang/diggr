@@ -46,3 +46,8 @@
 - Drill-animation regressions need a check for overlay opacity by material. If the active tile is already rendered from the true sprite, a generic tint layer can silently destroy the intended excavation look.
 - Render regressions can live in the draw condition, not just the style data. A zero-alpha overlay still needs a branch-level test or manual check if the graphics API may retain previous fill state.
 - Directional erosion needs both crop geometry and display-size geometry to match. A partial source rect rendered at full tile size can still break the animation for some directions even when the crop math itself is correct.
+- Consumable-effect regressions should cover both the visual-family mapping and any gameplay side effects tied to the same item, such as teleport landing zones. Otherwise a visual refactor can silently reintroduce interaction bugs.
+- FX approval passes need silhouette checks for blast and healing items. TNT and repair animations are especially easy to read incorrectly if tests only assert “some effect exists.”
+- Keep an explosive-specific protected-surface regression. Row-0 guard coverage on digging alone is not enough because TNT uses a separate destruction path.
+- Teleport regressions should assert both landing stability and no immediate modal re-entry. A “surface” destination is still broken if the next tick drops the rig or opens a shop.
+- Add a moving-to-settled regression for forced surface relocations. It is not enough to check the first tick; the shop should stay locked during motion and unlock only after a genuine stop.

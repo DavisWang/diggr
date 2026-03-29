@@ -52,3 +52,10 @@
 - If an animated block already uses the real cropped sprite, avoid painting a generic fill over it. Flat overlays can make drilling look like a gray placeholder instead of actual excavation through the material.
 - Setting overlay alpha to `0` is not enough if the renderer still executes the fill call. Guard the draw itself when disabling a visual layer, especially in stateful graphics APIs like Phaser Graphics.
 - Cropping alone is not enough for directional erosion if the sprite keeps its full display size. The rendered tile must shrink to the cropped width/height, or right/down drilling will look stretched and wrong.
+- First-pass placeholder FX are not good enough when the request is about feel. For item-use feedback, prefer authored or generated sprite animation over generic graphics primitives if the effect needs a recognizable silhouette.
+- Teleport destination helpers must be tested against nearby interaction pads. A valid surface landing spot is still wrong if it immediately re-triggers a shop modal.
+- Explosion art should read as blast + smoke, not a symmetric sunburst. If the first visual pass is too radial, break the silhouette with irregular puffs and debris.
+- Healing effects should communicate agents doing work, not just a ring pulse. Small support-item animations need a readable motif such as bots, crosses, or repair sparks.
+- Protected-terrain rules must apply to explosives too, not just drills. If row `0` is sacred for digging, TNT needs an explicit guard in its blast helper.
+- Surface interaction spacing is part of gameplay, not just layout. If a teleport or spawn needs a neutral landing zone, adjust pad geometry enough to create one instead of dropping the rig into a shaft or shop trigger.
+- Shop gating needs separate concepts for `left this pad` and `still moving from a forced relocation`. Fissurizer-style launches should suppress surface shops until the rig settles, even if it passes directly over a pad.

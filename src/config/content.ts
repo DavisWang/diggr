@@ -72,6 +72,8 @@ export const CONSUMABLE_TYPES: ConsumableType[] = [
 export const CONSUMABLE_ICON_FRAME_SIZE = 16;
 export const CONSUMABLE_ICON_SHEET_COLUMNS = 4;
 export const CONSUMABLE_ICON_SHEET_ROWS = Math.ceil(CONSUMABLE_TYPES.length / CONSUMABLE_ICON_SHEET_COLUMNS);
+export const CONSUMABLE_EFFECT_FRAME_SIZE = 32;
+export const CONSUMABLE_EFFECT_FRAMES_PER_TYPE = 5;
 
 export const BLOCK_DEFS: Record<BlockType, BlockDef> = {
   air: {
@@ -745,7 +747,7 @@ export const SURFACE_PADS: ShopPad[] = [
     shop: 'service',
     label: 'Repair + Refuel',
     color: '#77d15e',
-    x: 10.85,
+    x: 11.2,
     y: -1.35,
     width: 2.1,
     spriteFrame: 3,
@@ -769,7 +771,7 @@ export const SURFACE_PADS: ShopPad[] = [
   },
 ];
 
-export const TELEPORT_SERVICE_TARGET = { x: 10.85, y: -1.45 };
+export const TELEPORT_SURFACE_TARGET = { x: 9.8, y: -0.48 };
 
 export const HOW_TO_COPY = [
   'Arrow keys move the digger. Fly with Up and dig left/right/down by pushing into blocks.',

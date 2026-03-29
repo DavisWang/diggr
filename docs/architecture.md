@@ -38,7 +38,8 @@
 
 - `useConsumable` remains the gameplay source of truth for all item effects.
 - Consumable use now also starts a short-lived `activeConsumableEffect` state in gameplay, so the scene can render feedback without inferring item use from toast text or raw input.
-- `GameScene` renders those effects through a dedicated overlay graphics layer, separate from terrain/drill rendering, so repair, fuel, TNT, transporter, and fissurizer visuals can evolve without changing item mechanics.
+- `GameScene` renders those effects through a dedicated sprite-backed FX layer, separate from terrain/drill rendering, so repair, fuel, TNT, transporter, and fissurizer visuals can evolve without changing item mechanics.
+- Consumable FX art is generated into `src/assets/sprites/consumable-effects-sheet.png` and selected through pure frame/layout helpers in `src/phaser/rendering.ts`.
 
 ## Tuning model
 

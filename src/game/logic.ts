@@ -14,7 +14,7 @@ import {
   SHOP_MOVEMENT_DISMISS_GRACE_SECONDS,
   SURFACE_PADS,
   SURFACE_SKY_ROWS,
-  TELEPORT_SERVICE_TARGET,
+  TELEPORT_SURFACE_TARGET,
   TESTING_MAX_FUEL,
   TESTING_MAX_HEALTH,
   TESTING_START_CASH,
@@ -86,6 +86,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
     },
     toast: testingMode ? 'Testing mode active. Fuel, hull, and cash are boosted for sandbox runs.' : 'Dig down, sell ore, and upgrade the rig.',
     blockedShopUntilExit: null,
+    blockSurfaceShopsUntilStop: false,
   };
 }
 
@@ -93,6 +94,7 @@ export function restoreGame(state: GameState): GameState {
   normalizeSaveStationResumeState(state);
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
   state.activeConsumableEffect = state.activeConsumableEffect ?? null;
+  state.blockSurfaceShopsUntilStop = Boolean(state.blockSurfaceShopsUntilStop);
   state.player.activeDrill = state.player.activeDrill ?? null;
   state.meta.testingMode = Boolean(state.meta.testingMode);
   syncPlayerDerived(state.player, state.meta.testingMode);
@@ -150,6 +152,11 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   ensureRows(state.world, previousDepth - 4, previousDepth + 36);
 
   const groundedBefore = isGrounded(state);
+  const wasStillMovingForSurfaceShopLock =
+    Math.abs(state.player.velocity.x) >= 0.08 ||
+    Math.abs(state.player.velocity.y) >= 0.08 ||
+    state.player.airborne ||
+    !groundedBefore;
   if (!groundedBefore && !state.player.airborne) {
     state.player.airborne = true;
     state.player.airbornePeakY = state.player.position.y;
@@ -258,6 +265,17 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
     result.toast = result.toast ?? 'Surface reached. Shops and refinery are available.';
   }
 
+  if (
+    state.blockSurfaceShopsUntilStop &&
+    nowAboveSurface &&
+    groundedAfter &&
+    !wasStillMovingForSurfaceShopLock &&
+    Math.abs(state.player.velocity.x) < 0.08 &&
+    Math.abs(state.player.velocity.y) < 0.08
+  ) {
+    state.blockSurfaceShopsUntilStop = false;
+  }
+
   const shop = findShopAtPosition(state.player.position);
   state.player.lastSurfaceZone = shop?.shop ?? null;
   if (!shop && state.blockedShopUntilExit) {
@@ -267,6 +285,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   if (
     shop &&
     state.mode === 'gameplay' &&
+    !state.blockSurfaceShopsUntilStop &&
     state.blockedShopUntilExit !== shop.shop &&
     nowAboveSurface &&
     Math.abs(state.player.velocity.x) < 3.4 &&
@@ -501,11 +520,13 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
       return 'Large TNT cleared a 5x5 area.';
     case 'matter_transporter':
       cancelActiveDrill(state);
-      state.player.position = { ...TELEPORT_SERVICE_TARGET };
+      state.blockSurfaceShopsUntilStop = false;
+      state.player.position = { ...TELEPORT_SURFACE_TARGET };
       state.player.velocity = { x: 0, y: 0 };
-      return 'Matter Transporter moved the rig to the service bay.';
+      return 'Matter Transporter moved the rig to the surface.';
     case 'quantum_fissurizer': {
       cancelActiveDrill(state);
+      state.blockSurfaceShopsUntilStop = true;
       const random = mulberry32(hashSeed(state.world.seed, Math.floor(state.player.position.y) + 999));
       state.player.position = {
         x: randomInt(random, 1, WORLD_WIDTH - 2) + 0.5,
@@ -681,7 +702,7 @@ export function findShopAtPosition(position: Vector2): ShopPad | null {
 
 function createPlayer(testingMode = false): PlayerState {
   const equipment = createEquipment();
-  const inventory = createInventory();
+  const inventory = createInventory(testingMode);
 
   return {
     position: { x: ENTRY_COLUMN - PLAYER_HALF_WIDTH - 0.04, y: -PLAYER_HALF_HEIGHT - 0.02 },
@@ -716,7 +737,20 @@ function createEquipment(): EquipmentLevels {
   };
 }
 
-function createInventory(): InventoryState {
+function createInventory(testingMode = false): InventoryState {
+  if (testingMode) {
+    return {
+      repair_nanobot: 100,
+      repair_microbot: 100,
+      small_fuel_tank: 100,
+      large_fuel_tank: 100,
+      small_tnt: 100,
+      large_tnt: 100,
+      matter_transporter: 100,
+      quantum_fissurizer: 100,
+    };
+  }
+
   return {
     repair_nanobot: 1,
     repair_microbot: 0,
@@ -902,7 +936,7 @@ function blastRadius(state: GameState, radius: number): void {
 
   for (let row = centerRow - radius; row <= centerRow + radius; row += 1) {
     for (let x = centerX - radius; x <= centerX + radius; x += 1) {
-      if (x < 0 || x >= WORLD_WIDTH || row < 0) {
+      if (x < 0 || x >= WORLD_WIDTH || row < 0 || row === 0) {
         continue;
       }
 

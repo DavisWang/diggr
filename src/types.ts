@@ -203,6 +203,7 @@ export interface GameState {
   meta: GameMeta;
   toast: string | null;
   blockedShopUntilExit: ShopType | null;
+  blockSurfaceShopsUntilStop: boolean;
 }
 
 export interface SaveData {

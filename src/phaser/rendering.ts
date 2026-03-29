@@ -1,4 +1,12 @@
-import { BLOCK_DEFS, DRILL_COMPLETION_INSET, PLAYER_HALF_HEIGHT, PLAYER_HALF_WIDTH, SURFACE_RENDER_OFFSET } from '../config/content';
+import {
+  BLOCK_DEFS,
+  CONSUMABLE_EFFECT_FRAMES_PER_TYPE,
+  CONSUMABLE_TYPES,
+  DRILL_COMPLETION_INSET,
+  PLAYER_HALF_HEIGHT,
+  PLAYER_HALF_WIDTH,
+  SURFACE_RENDER_OFFSET,
+} from '../config/content';
 import type { BlockCell, BlockType, ConsumableType, ControlState, DrillRenderState, GameState, ShopPad } from '../types';
 
 export type DiggerRenderState =
@@ -110,11 +118,11 @@ export interface ConsumableEffectRenderState {
 
 export interface ConsumableEffectStyle {
   kind: ConsumableEffectVisualKind;
-  primaryColor: number;
-  accentColor: number;
-  radiusTiles: number;
-  secondaryRadiusTiles: number;
-  particleCount: number;
+  widthTiles: number;
+  heightTiles: number;
+  offsetYTiles: number;
+  alpha: number;
+  frame: number;
 }
 
 const SURFACE_GROUND_FRAMES = [14, 15, 16] as const;
@@ -287,87 +295,94 @@ export function getSurfaceGroundFrame(x: number): number {
 }
 
 export function getConsumableEffectStyle(effect: ConsumableEffectRenderState): ConsumableEffectStyle {
+  const frameOffset = Math.min(
+    CONSUMABLE_EFFECT_FRAMES_PER_TYPE - 1,
+    Math.floor(clamp01(effect.progress) * CONSUMABLE_EFFECT_FRAMES_PER_TYPE),
+  );
+  const frame = CONSUMABLE_TYPES.indexOf(effect.type) * CONSUMABLE_EFFECT_FRAMES_PER_TYPE + frameOffset;
+  const fadeAlpha = effect.progress >= 0.8 ? (1 - effect.progress) / 0.2 : 1;
+
   switch (effect.type) {
     case 'repair_nanobot':
       return {
         kind: 'repair',
-        primaryColor: 0x73e06d,
-        accentColor: 0xe5ffd4,
-        radiusTiles: 0.72,
-        secondaryRadiusTiles: 0.38,
-        particleCount: 5,
+        widthTiles: 1.9,
+        heightTiles: 1.9,
+        offsetYTiles: -0.02,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'repair_microbot':
       return {
         kind: 'repair',
-        primaryColor: 0x4fd66d,
-        accentColor: 0xf2ffdb,
-        radiusTiles: 0.96,
-        secondaryRadiusTiles: 0.54,
-        particleCount: 8,
+        widthTiles: 2.3,
+        heightTiles: 2.3,
+        offsetYTiles: -0.04,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'small_fuel_tank':
       return {
         kind: 'fuel',
-        primaryColor: 0x59b8ff,
-        accentColor: 0xe3f6ff,
-        radiusTiles: 0.72,
-        secondaryRadiusTiles: 0.22,
-        particleCount: 3,
+        widthTiles: 1.55,
+        heightTiles: 2.1,
+        offsetYTiles: -0.15,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'large_fuel_tank':
       return {
         kind: 'fuel',
-        primaryColor: 0x4faeff,
-        accentColor: 0xf0fbff,
-        radiusTiles: 0.94,
-        secondaryRadiusTiles: 0.3,
-        particleCount: 5,
+        widthTiles: 1.85,
+        heightTiles: 2.35,
+        offsetYTiles: -0.2,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'small_tnt':
       return {
         kind: 'blast',
-        primaryColor: 0xffa63d,
-        accentColor: 0xffeb9b,
-        radiusTiles: 1.55,
-        secondaryRadiusTiles: 0.46,
-        particleCount: 8,
+        widthTiles: 2.2,
+        heightTiles: 2.2,
+        offsetYTiles: 0.02,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'large_tnt':
       return {
         kind: 'blast',
-        primaryColor: 0xff8436,
-        accentColor: 0xfff0b8,
-        radiusTiles: 2.45,
-        secondaryRadiusTiles: 0.68,
-        particleCount: 12,
+        widthTiles: 2.8,
+        heightTiles: 2.8,
+        offsetYTiles: 0.03,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'matter_transporter':
       return {
         kind: 'transport',
-        primaryColor: 0x66f2ff,
-        accentColor: 0xeaffff,
-        radiusTiles: 0.92,
-        secondaryRadiusTiles: 1.2,
-        particleCount: 6,
+        widthTiles: 2.0,
+        heightTiles: 2.7,
+        offsetYTiles: -0.32,
+        alpha: fadeAlpha,
+        frame,
       };
     case 'quantum_fissurizer':
       return {
         kind: 'fissure',
-        primaryColor: 0xbf79ff,
-        accentColor: 0xf1ddff,
-        radiusTiles: 1.18,
-        secondaryRadiusTiles: 1.65,
-        particleCount: 9,
+        widthTiles: 2.5,
+        heightTiles: 2.7,
+        offsetYTiles: -0.12,
+        alpha: fadeAlpha,
+        frame,
       };
     default:
       return {
         kind: 'repair',
-        primaryColor: 0xffffff,
-        accentColor: 0xffffff,
-        radiusTiles: 0.8,
-        secondaryRadiusTiles: 0.4,
-        particleCount: 4,
+        widthTiles: 2,
+        heightTiles: 2,
+        offsetYTiles: 0,
+        alpha: fadeAlpha,
+        frame,
       };
   }
 }

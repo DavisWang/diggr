@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { SURFACE_PADS, SURFACE_SKY_ROWS, TILE_SIZE, WORLD_WIDTH } from '../config/content';
+import { CONSUMABLE_EFFECT_FRAME_SIZE, SURFACE_PADS, SURFACE_SKY_ROWS, TILE_SIZE, WORLD_WIDTH } from '../config/content';
 import { getConsumableEffectRenderState, getDrillRenderState } from '../game/logic';
 import { ensureRows, getCell } from '../game/world';
 import type { ControlState } from '../types';
@@ -26,16 +26,18 @@ import {
 const DIGGER_TEXTURE_KEY = 'digger-sheet';
 const SHOP_TEXTURE_KEY = 'surface-shops';
 const TERRAIN_TEXTURE_KEY = 'terrain-sheet';
+const CONSUMABLE_EFFECT_TEXTURE_KEY = 'consumable-effects';
 
 const DIGGER_TEXTURE_URL = new URL('../assets/sprites/digger-sheet.png', import.meta.url).href;
 const SHOP_TEXTURE_URL = new URL('../assets/sprites/surface-shops.png', import.meta.url).href;
 const TERRAIN_TEXTURE_URL = new URL('../assets/sprites/terrain-sheet.png', import.meta.url).href;
+const CONSUMABLE_EFFECT_TEXTURE_URL = new URL('../assets/sprites/consumable-effects-sheet.png', import.meta.url).href;
 
 export class GameScene extends Phaser.Scene {
   static readonly KEY = 'game-scene';
 
   private worldGraphics: Phaser.GameObjects.Graphics | null = null;
-  private effectGraphics: Phaser.GameObjects.Graphics | null = null;
+  private consumableEffectSprite: Phaser.GameObjects.Image | null = null;
   private playerSprite: Phaser.GameObjects.Sprite | null = null;
   private shopSprites: Phaser.GameObjects.Image[] = [];
   private terrainSprites: Phaser.GameObjects.Image[] = [];
@@ -57,13 +59,19 @@ export class GameScene extends Phaser.Scene {
     this.load.spritesheet(TERRAIN_TEXTURE_KEY, TERRAIN_TEXTURE_URL, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet(DIGGER_TEXTURE_KEY, DIGGER_TEXTURE_URL, { frameWidth: 16, frameHeight: 16 });
     this.load.spritesheet(SHOP_TEXTURE_KEY, SHOP_TEXTURE_URL, { frameWidth: 16, frameHeight: 16 });
+    this.load.spritesheet(CONSUMABLE_EFFECT_TEXTURE_KEY, CONSUMABLE_EFFECT_TEXTURE_URL, {
+      frameWidth: CONSUMABLE_EFFECT_FRAME_SIZE,
+      frameHeight: CONSUMABLE_EFFECT_FRAME_SIZE,
+    });
   }
 
   create(): void {
     this.cameras.main.setBackgroundColor('#0e1623');
     this.worldGraphics = this.add.graphics();
-    this.effectGraphics = this.add.graphics();
-    this.effectGraphics.setDepth(2.6);
+    this.consumableEffectSprite = this.add.image(0, 0, CONSUMABLE_EFFECT_TEXTURE_KEY, 0);
+    this.consumableEffectSprite.setDepth(2.6);
+    this.consumableEffectSprite.setOrigin(0.5, 0.5);
+    this.consumableEffectSprite.setVisible(false);
     this.playerSprite = this.add.sprite(0, 0, DIGGER_TEXTURE_KEY, DIGGER_ANIMATIONS.idle_grounded.frames[0]);
     this.playerSprite.setDepth(3);
     this.playerSprite.setOrigin(0.5, 0.5);
@@ -168,7 +176,7 @@ export class GameScene extends Phaser.Scene {
   private renderState(controls: Pick<ControlState, 'left' | 'right' | 'up' | 'down'>): void {
     const app = this.getApp();
     const state = app.getState();
-    if (!state || !this.worldGraphics || !this.effectGraphics || !this.playerSprite) {
+    if (!state || !this.worldGraphics || !this.playerSprite || !this.consumableEffectSprite) {
       return;
     }
 
@@ -191,9 +199,7 @@ export class GameScene extends Phaser.Scene {
     this.syncDiggerAnimation(state, controls);
 
     const graphics = this.worldGraphics;
-    const effectGraphics = this.effectGraphics;
     graphics.clear();
-    effectGraphics.clear();
 
     const camera = this.cameras.main;
     const minRow = Math.max(0, Math.floor(camera.worldView.y / tileSize) - 2);
@@ -313,7 +319,21 @@ export class GameScene extends Phaser.Scene {
 
     const consumableEffect = getConsumableEffectRenderState(state.activeConsumableEffect);
     if (consumableEffect) {
-      this.drawConsumableEffect(effectGraphics, consumableEffect);
+      const effectStyle = getConsumableEffectStyle(consumableEffect);
+      const pulse = 0.96 + Math.sin(this.time.now * 0.018) * 0.04;
+      this.consumableEffectSprite.setFrame(effectStyle.frame);
+      this.consumableEffectSprite.setDisplaySize(
+        this.tileSize * effectStyle.widthTiles * pulse,
+        this.tileSize * effectStyle.heightTiles * pulse,
+      );
+      this.consumableEffectSprite.setPosition(
+        this.playerSprite.x,
+        this.playerSprite.y + this.tileSize * effectStyle.offsetYTiles,
+      );
+      this.consumableEffectSprite.setAlpha(effectStyle.alpha);
+      this.consumableEffectSprite.setVisible(true);
+    } else {
+      this.consumableEffectSprite.setVisible(false);
     }
   }
 
@@ -421,121 +441,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.playerSprite.setFlipX(resolved.flipX);
-  }
-
-  private drawConsumableEffect(
-    graphics: Phaser.GameObjects.Graphics,
-    effect: NonNullable<ReturnType<typeof getConsumableEffectRenderState>>,
-  ): void {
-    if (!this.playerSprite) {
-      return;
-    }
-
-    const style = getConsumableEffectStyle(effect);
-    const centerX = this.playerSprite.x;
-    const centerY = this.playerSprite.y;
-    const pulse = 0.86 + (Math.sin(this.time.now * 0.018) + 1) * 0.09;
-    const progress = effect.progress;
-    const radius = this.tileSize * style.radiusTiles * (0.45 + progress * 0.75) * pulse;
-    const secondaryRadius = this.tileSize * style.secondaryRadiusTiles * (0.65 + progress * 0.55);
-
-    if (style.kind === 'repair') {
-      graphics.lineStyle(3, style.primaryColor, 0.85 - progress * 0.25);
-      graphics.strokeCircle(centerX, centerY, radius);
-      graphics.lineStyle(2, style.accentColor, 0.72 - progress * 0.22);
-      graphics.strokeCircle(centerX, centerY, secondaryRadius);
-
-      for (let index = 0; index < style.particleCount; index += 1) {
-        const angle = progress * 5.6 + (index / style.particleCount) * Math.PI * 2;
-        const orbit = radius * (0.58 + 0.16 * Math.sin(this.time.now * 0.01 + index));
-        const x = centerX + Math.cos(angle) * orbit;
-        const y = centerY + Math.sin(angle) * orbit;
-        graphics.fillStyle(style.accentColor, 0.92);
-        graphics.fillRect(x - 2, y - 2, 4, 4);
-      }
-
-      graphics.lineStyle(2, style.accentColor, 0.7);
-      graphics.beginPath();
-      graphics.moveTo(centerX, centerY - secondaryRadius);
-      graphics.lineTo(centerX, centerY + secondaryRadius);
-      graphics.moveTo(centerX - secondaryRadius, centerY);
-      graphics.lineTo(centerX + secondaryRadius, centerY);
-      graphics.strokePath();
-      return;
-    }
-
-    if (style.kind === 'fuel') {
-      const beamWidth = this.tileSize * (0.18 + progress * 0.08);
-      const beamHeight = this.tileSize * (0.5 + progress * 0.28);
-      graphics.fillStyle(style.primaryColor, 0.24 + progress * 0.12);
-      graphics.fillRect(centerX - beamWidth / 2, centerY + this.tileSize * 0.15 - beamHeight, beamWidth, beamHeight);
-      graphics.lineStyle(2, style.accentColor, 0.9);
-      graphics.strokeCircle(centerX, centerY + this.tileSize * 0.06, secondaryRadius);
-
-      for (let index = 0; index < style.particleCount; index += 1) {
-        const phase = (progress * 1.2 + index / style.particleCount) % 1;
-        const x = centerX + (index - (style.particleCount - 1) / 2) * this.tileSize * 0.12;
-        const y = centerY + this.tileSize * 0.3 - phase * beamHeight;
-        graphics.fillStyle(style.accentColor, 0.86 - phase * 0.3);
-        graphics.fillCircle(x, y, this.tileSize * 0.06);
-      }
-      return;
-    }
-
-    if (style.kind === 'blast') {
-      const blastRadius = radius;
-      graphics.lineStyle(4, style.primaryColor, 0.88 - progress * 0.35);
-      graphics.strokeCircle(centerX, centerY, blastRadius);
-      graphics.lineStyle(2, style.accentColor, 0.95 - progress * 0.45);
-      graphics.strokeCircle(centerX, centerY, Math.max(secondaryRadius, blastRadius * 0.52));
-
-      for (let index = 0; index < style.particleCount; index += 1) {
-        const angle = (index / style.particleCount) * Math.PI * 2 + progress * 0.6;
-        const inner = blastRadius * 0.58;
-        const outer = blastRadius * (0.9 + 0.14 * Math.sin(progress * 8 + index));
-        graphics.lineStyle(3, index % 2 === 0 ? style.accentColor : style.primaryColor, 0.82 - progress * 0.4);
-        graphics.beginPath();
-        graphics.moveTo(centerX + Math.cos(angle) * inner, centerY + Math.sin(angle) * inner);
-        graphics.lineTo(centerX + Math.cos(angle) * outer, centerY + Math.sin(angle) * outer);
-        graphics.strokePath();
-      }
-      return;
-    }
-
-    if (style.kind === 'transport') {
-      const beamWidth = this.tileSize * 0.72;
-      const beamHeight = this.tileSize * (1.3 + progress * 0.5);
-      graphics.fillStyle(style.primaryColor, 0.16 + progress * 0.08);
-      graphics.fillRect(centerX - beamWidth / 2, centerY - beamHeight * 0.8, beamWidth, beamHeight);
-      graphics.lineStyle(3, style.accentColor, 0.9);
-      graphics.strokeCircle(centerX, centerY, radius * 0.78);
-      graphics.strokeCircle(centerX, centerY, radius * 1.1);
-
-      for (let index = 0; index < style.particleCount; index += 1) {
-        const y = centerY - beamHeight * 0.7 + ((progress * 3.2 + index / style.particleCount) % 1) * beamHeight;
-        graphics.fillStyle(style.accentColor, 0.82);
-        graphics.fillRect(centerX - beamWidth * 0.32 + (index % 3) * beamWidth * 0.26, y, 3, 3);
-      }
-      return;
-    }
-
-    const fissureRadius = radius;
-    graphics.lineStyle(3, style.primaryColor, 0.9 - progress * 0.28);
-    for (let index = 0; index < style.particleCount; index += 1) {
-      const angle = -Math.PI / 2 + (index - style.particleCount / 2) * 0.28;
-      const midRadius = secondaryRadius * (0.8 + (index % 3) * 0.16);
-      const outerRadius = fissureRadius * (0.88 + (index % 2) * 0.22);
-      graphics.beginPath();
-      graphics.moveTo(centerX, centerY);
-      graphics.lineTo(centerX + Math.cos(angle) * midRadius, centerY + Math.sin(angle) * midRadius);
-      graphics.lineTo(
-        centerX + Math.cos(angle + (index % 2 === 0 ? 0.1 : -0.1)) * outerRadius,
-        centerY + Math.sin(angle + (index % 2 === 0 ? 0.1 : -0.1)) * outerRadius,
-      );
-      graphics.strokePath();
-    }
-    graphics.lineStyle(2, style.accentColor, 0.84 - progress * 0.3);
-    graphics.strokeCircle(centerX, centerY, secondaryRadius * 0.72);
   }
 }
 
