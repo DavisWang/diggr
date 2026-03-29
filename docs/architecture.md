@@ -30,7 +30,9 @@
 - Fuel is charged up front at drill start.
 - The target block remains intact until the drill timer completes.
 - Render helpers derive erosion crops and digger alignment from `activeDrill` progress.
+- The active drill target renders through a dedicated masked full-size terrain sprite in `GameScene` instead of a resized crop from the shared terrain pool. This keeps the source block art intact while the mask reveals the shrinking visible area.
 - Drill completion clears the block, resolves rewards/damage, and moves the real player state into the newly opened space.
+- Cargo capacity is enforced at drill resolution, not drill start. If the hold is full, the block still breaks and collectible ore is discarded instead of blocking mining.
 
 ## Tuning model
 

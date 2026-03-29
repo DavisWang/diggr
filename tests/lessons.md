@@ -34,3 +34,15 @@
 - Fall-damage regressions need both curve tests and landing-event tests. Pure distance assertions miss repeated grounded damage and miss the expected relief from last-second upward thrust.
 - Deployment automation needs a first-run path too. A workflow that only works after Pages is manually enabled is not actually self-serve.
 - Visual approval passes need a silhouette-first check. Small-sprite regressions are often “category is unreadable,” not “wrong colors,” so review artifacts should make shape ambiguity obvious early.
+- UI cleanup issues can live in spacing, not structure. Visual regressions around cramped action rows are worth checking manually even when DOM tests still pass.
+- Shared UI primitives should expose separate label/value hooks when text length can vary. Otherwise layout regressions show up only in long-copy cases like upgrade tier names.
+- Text-overflow fixes need readability checks, not just containment. A value that wraps mid-word is still a UI defect even if no pixels overflow.
+- Layout regressions can survive correct text-wrapping rules if the modal width is too constrained. Verify the container width against the densest shop layout, not just the text node behavior.
+- Surface-art regressions need a render-offset check after visual cap changes. Collision tests alone will not catch a rig that visually floats above the terrain.
+- Surface render tests should aim for the visible terrain edge, not just a generic top-layer offset. Decorative grass changed the visual ground truth without changing gameplay collision.
+- Visual alignment fixes need an explicit target anchor. A user calling out a specific terrain line means the test expectation should move all the way to that reference, not stop at “less bad.”
+- Responsive HUD behavior needs viewport-aware review, not just desktop defaults. A breakpoint that seems reasonable can still hide core gameplay space once the browser narrows.
+- Add explicit regressions for “action still succeeds but reward is discarded” cases. Capacity limits often belong in resolution logic, not action-start validation.
+- Drill-animation regressions need a check for overlay opacity by material. If the active tile is already rendered from the true sprite, a generic tint layer can silently destroy the intended excavation look.
+- Render regressions can live in the draw condition, not just the style data. A zero-alpha overlay still needs a branch-level test or manual check if the graphics API may retain previous fill state.
+- Directional erosion needs both crop geometry and display-size geometry to match. A partial source rect rendered at full tile size can still break the animation for some directions even when the crop math itself is correct.

@@ -702,10 +702,6 @@ export function attemptDig(
     return 'Not enough fuel to start the drill.';
   }
 
-  if (block.cargo > 0 && state.player.cargoUsed + block.cargo > state.player.cargoCapacity) {
-    return 'Cargo hold is full.';
-  }
-
   spendFuel(state.player, fuelCost);
   state.player.activeDrill = {
     x: target.x,
@@ -797,7 +793,12 @@ function resolveActiveDrill(state: GameState): string | null {
   }
 
   if (block.cargo > 0) {
-    addToCargo(state.player, cell.type as SellableMaterial, block.cargo);
+    if (state.player.cargoUsed + block.cargo <= state.player.cargoCapacity) {
+      addToCargo(state.player, cell.type as SellableMaterial, block.cargo);
+      return `Mined ${block.label}.`;
+    }
+
+    return `Mined ${block.label}, but the cargo hold was full so it was discarded.`;
   }
 
   return `Mined ${block.label}.`;

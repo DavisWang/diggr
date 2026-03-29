@@ -503,8 +503,8 @@ function getModalTitle(type: ShopType | GameState['modal']['type']): string {
 }
 
 function statLine(label: string, value: string): HTMLElement {
-  const wrapper = div('metric');
-  wrapper.append(element('span', 'hud-label', label), element('span', '', value));
+  const wrapper = div('metric stat-line');
+  wrapper.append(element('span', 'hud-label stat-line-label', label), element('span', 'stat-line-value', value));
   return wrapper;
 }
 

@@ -9,6 +9,7 @@ import {
   DIGGER_SPRITE_SIZE,
   DIGGER_TRANSIENT_DURATIONS,
   getDirectionalDrillErosionRect,
+  getDrillMaskRect,
   getDrillOverlayStyle,
   getDrillRigOffset,
   getDrillTerrainFrame,
@@ -28,7 +29,6 @@ const TERRAIN_TEXTURE_KEY = 'terrain-sheet';
 const DIGGER_TEXTURE_URL = new URL('../assets/sprites/digger-sheet.png', import.meta.url).href;
 const SHOP_TEXTURE_URL = new URL('../assets/sprites/surface-shops.png', import.meta.url).href;
 const TERRAIN_TEXTURE_URL = new URL('../assets/sprites/terrain-sheet.png', import.meta.url).href;
-const TERRAIN_FRAME_SIZE = 16;
 
 export class GameScene extends Phaser.Scene {
   static readonly KEY = 'game-scene';
@@ -38,6 +38,8 @@ export class GameScene extends Phaser.Scene {
   private shopSprites: Phaser.GameObjects.Image[] = [];
   private terrainSprites: Phaser.GameObjects.Image[] = [];
   private surfaceSprites: Phaser.GameObjects.Image[] = [];
+  private activeDrillSprite: Phaser.GameObjects.Image | null = null;
+  private activeDrillMaskGraphics: Phaser.GameObjects.Graphics | null = null;
   private shopLabels: Phaser.GameObjects.Text[] = [];
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private consumableKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
@@ -61,6 +63,14 @@ export class GameScene extends Phaser.Scene {
     this.playerSprite = this.add.sprite(0, 0, DIGGER_TEXTURE_KEY, DIGGER_ANIMATIONS.idle_grounded.frames[0]);
     this.playerSprite.setDepth(3);
     this.playerSprite.setOrigin(0.5, 0.5);
+    // The active drill target renders through its own masked full-size sprite so
+    // the block art stays intact while the visible area gets eaten away.
+    this.activeDrillSprite = this.add.image(0, 0, TERRAIN_TEXTURE_KEY, 0);
+    this.activeDrillSprite.setDepth(1);
+    this.activeDrillSprite.setOrigin(0, 0);
+    this.activeDrillSprite.setVisible(false);
+    this.activeDrillMaskGraphics = this.make.graphics();
+    this.activeDrillSprite.setMask(this.activeDrillMaskGraphics.createGeometryMask());
     this.createDiggerAnimations();
 
     this.cursors = this.input.keyboard?.createCursorKeys() ?? null;
@@ -223,22 +233,15 @@ export class GameScene extends Phaser.Scene {
           continue;
         }
 
+        if (isActiveDrillTarget) {
+          continue;
+        }
+
         const sprite = this.terrainSprites[spriteIndex];
         sprite.setFrame(frame);
+        sprite.setCrop();
         sprite.setDisplaySize(tileSize, tileSize);
-        if (isActiveDrillTarget) {
-          const erosion = getDirectionalDrillErosionRect(drillRenderState);
-          sprite.setCrop(
-            erosion.visibleLeft * TERRAIN_FRAME_SIZE,
-            erosion.visibleTop * TERRAIN_FRAME_SIZE,
-            erosion.visibleWidth * TERRAIN_FRAME_SIZE,
-            erosion.visibleHeight * TERRAIN_FRAME_SIZE,
-          );
-          sprite.setPosition((x + erosion.visibleLeft) * tileSize, (row + erosion.visibleTop) * tileSize);
-        } else {
-          sprite.setCrop();
-          sprite.setPosition(x * tileSize, row * tileSize);
-        }
+        sprite.setPosition(x * tileSize, row * tileSize);
         sprite.setVisible(true);
         spriteIndex += 1;
       }
@@ -248,18 +251,33 @@ export class GameScene extends Phaser.Scene {
       this.terrainSprites[index].setVisible(false);
     }
 
-    if (drillRenderState) {
+    if (drillRenderState && this.activeDrillSprite && this.activeDrillMaskGraphics) {
       const erosion = getDirectionalDrillErosionRect(drillRenderState);
       const overlay = getDrillOverlayStyle(drillRenderState);
       const glowPulse = 0.88 + (Math.sin(this.time.now * 0.014) + 1) * 0.08;
       const blockX = drillRenderState.x * tileSize;
       const blockY = drillRenderState.row * tileSize;
-      const visibleX = blockX + erosion.visibleLeft * tileSize;
-      const visibleY = blockY + erosion.visibleTop * tileSize;
-      const visibleWidth = erosion.visibleWidth * tileSize;
-      const visibleHeight = erosion.visibleHeight * tileSize;
+      const maskRect = getDrillMaskRect(drillRenderState, tileSize);
+      const visibleX = maskRect.x;
+      const visibleY = maskRect.y;
+      const visibleWidth = maskRect.width;
+      const visibleHeight = maskRect.height;
+      const activeFrame = getDrillTerrainFrame(drillRenderState, drillRenderState.x, drillRenderState.row);
 
-      if (visibleWidth > 0 && visibleHeight > 0) {
+      if (activeFrame !== null) {
+        this.activeDrillSprite.setFrame(activeFrame);
+        this.activeDrillSprite.setDisplaySize(tileSize, tileSize);
+        this.activeDrillSprite.setPosition(blockX, blockY);
+        this.activeDrillSprite.setVisible(true);
+        this.activeDrillMaskGraphics.clear();
+        this.activeDrillMaskGraphics.fillStyle(0xffffff, 1);
+        this.activeDrillMaskGraphics.fillRect(maskRect.x, maskRect.y, maskRect.width, maskRect.height);
+      } else {
+        this.activeDrillSprite.setVisible(false);
+        this.activeDrillMaskGraphics.clear();
+      }
+
+      if (overlay.fillAlpha > 0 && visibleWidth > 0 && visibleHeight > 0) {
         graphics.fillStyle(overlay.fillColor, overlay.fillAlpha * glowPulse);
         graphics.fillRect(visibleX, visibleY, visibleWidth, visibleHeight);
       }
@@ -282,6 +300,9 @@ export class GameScene extends Phaser.Scene {
         graphics.lineTo(visibleX + visibleWidth - 2, visibleY + 1);
         graphics.strokePath();
       }
+    } else if (this.activeDrillSprite && this.activeDrillMaskGraphics) {
+      this.activeDrillSprite.setVisible(false);
+      this.activeDrillMaskGraphics.clear();
     }
   }
 

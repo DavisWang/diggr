@@ -696,7 +696,7 @@ export const PHYSICS = {
   fallDamageMaxHealthFraction: 0.8,
 };
 
-export const SURFACE_RENDER_OFFSET = 0.5;
+export const SURFACE_RENDER_OFFSET = 0.02;
 export const SHOP_MOVEMENT_DISMISS_GRACE_SECONDS = 1.5;
 
 export const PLAYER_START_CASH = 180;

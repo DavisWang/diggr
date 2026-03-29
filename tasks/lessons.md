@@ -40,3 +40,15 @@
 - Fall damage should trigger from a genuine airborne landing event and scale with impact severity, not from any generic downward collision after a long drop. Otherwise grounded follow-up ticks and late-thrust slowdowns both feel wrong.
 - GitHub Pages workflows should bootstrap Pages when possible instead of assuming the repo is already enabled. First deploys on a brand-new repo are a different state than steady-state deploys.
 - At `16x16`, category readability depends on silhouette first, not palette accents. If an icon family is ambiguous in review, strengthen the base shape before adding more detail.
+- Modal polish needs explicit spacing rules around primary actions. If shop buttons visually touch the preceding content, add layout spacing at the action slot instead of relying on incidental flow gaps.
+- Shared stat-row components need explicit wrapping rules for long values. Upgrade/detail labels are short, but tier names and status text can overflow if the value column is left as an unbounded inline span.
+- When wrapping UI copy, prefer normal word-boundary wrapping over emergency character breaking. Mid-word splits make upgrade and status text feel broken even if they technically fit.
+- If text still overflows after fixing wrap rules, the problem may be container width rather than typography. Dense multi-column shop modals need enough horizontal budget before local text tweaks will help.
+- When surface art changes height, retune the render-only player offset against the new ground silhouette. Decorative terrain updates can make the rig look like it is hovering even if collision logic is unchanged.
+- Surface placement needs to target the visible top line, not just “no longer hovering.” On decorative caps with grass, the rig should visually key off the grass line even if that means slight overlap with foreground blades.
+- If the user points to a specific line in the art, match that visual anchor exactly. “Close enough” render tuning is not enough when the terrain has a clear horizon line like the dark green grass band.
+- HUD responsiveness should preserve gameplay visibility first. Do not stack or oversize status panels at medium widths if that causes them to cover the digger and the surface interaction area.
+- Mining rules should distinguish between `can destroy the block` and `can store the reward`. A full cargo hold should discard collectible ore, not block the drill action itself.
+- If an animated block already uses the real cropped sprite, avoid painting a generic fill over it. Flat overlays can make drilling look like a gray placeholder instead of actual excavation through the material.
+- Setting overlay alpha to `0` is not enough if the renderer still executes the fill call. Guard the draw itself when disabling a visual layer, especially in stateful graphics APIs like Phaser Graphics.
+- Cropping alone is not enough for directional erosion if the sprite keeps its full display size. The rendered tile must shrink to the cropped width/height, or right/down drilling will look stretched and wrong.

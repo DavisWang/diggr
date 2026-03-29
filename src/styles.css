@@ -62,18 +62,22 @@ select {
 
 .hud {
   position: absolute;
-  top: 18px;
-  left: 18px;
-  right: 18px;
+  top: clamp(8px, 1.6vw, 18px);
+  left: clamp(8px, 1.6vw, 18px);
+  right: clamp(8px, 1.6vw, 18px);
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  align-items: flex-start;
+  gap: clamp(8px, 1.4vw, 18px);
   pointer-events: none;
 }
 
 .hud-panel {
-  min-width: 260px;
-  padding: 14px 16px;
+  flex: 1 1 0;
+  min-width: clamp(148px, 18vw, 220px);
+  max-width: min(32vw, 280px);
+  padding: clamp(6px, 1vw, 14px) clamp(8px, 1.2vw, 16px);
+  font-size: clamp(0.7rem, 0.95vw, 1rem);
 }
 
 .hud-list {
@@ -104,7 +108,7 @@ select {
 
 .title-card,
 .modal-card {
-  width: min(780px, calc(100vw - 48px));
+  width: min(920px, calc(100vw - 48px));
   padding: 28px;
 }
 
@@ -306,6 +310,10 @@ select {
   padding: 18px;
 }
 
+.detail-panel > .diggr-button {
+  margin-top: 12px;
+}
+
 .detail-title {
   margin-top: 0;
   color: #ffd879;
@@ -331,12 +339,44 @@ select {
   background: rgba(16, 24, 40, 0.75);
 }
 
+.stat-line {
+  align-items: flex-start;
+}
+
+.stat-line-label {
+  flex: 0 0 120px;
+  min-width: 120px;
+}
+
+.stat-line-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 .choice-button {
   text-align: left;
 }
 
 .status-line {
   color: #8fd0ff;
+}
+
+.hud-panel .metric {
+  gap: clamp(6px, 0.8vw, 12px);
+  padding: clamp(5px, 0.8vw, 10px) clamp(7px, 1vw, 12px);
+}
+
+.hud-panel .stat-line-label {
+  flex-basis: clamp(58px, 8vw, 96px);
+  min-width: clamp(58px, 8vw, 96px);
+}
+
+.hud-panel .stat-line-value {
+  white-space: nowrap;
 }
 
 .inventory-grid {
@@ -405,6 +445,16 @@ select {
 }
 
 @media (max-width: 980px) {
+  .hud-panel {
+    max-width: min(36vw, 240px);
+  }
+
+  .hud-panel .stat-line-value {
+    font-size: clamp(0.64rem, 1.35vw, 0.92rem);
+  }
+}
+
+@media (max-width: 700px) {
   .shop-layout {
     grid-template-columns: 1fr;
   }
@@ -415,5 +465,6 @@ select {
 
   .hud-panel {
     min-width: 0;
+    max-width: none;
   }
 }

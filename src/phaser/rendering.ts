@@ -94,6 +94,13 @@ export interface DrillRigOffset {
   yTiles: number;
 }
 
+export interface DrillMaskRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 const SURFACE_GROUND_FRAMES = [14, 15, 16] as const;
 
 // Rendering helpers stay pure so tests can verify visual geometry without a
@@ -182,17 +189,17 @@ export function getDrillOverlayStyle(drill: DrillRenderState): DrillOverlayStyle
   if (material === 'ore') {
     return {
       fillColor: 0xdde9ff,
-      fillAlpha: 0.08 + progress * 0.12,
+      fillAlpha: 0,
       edgeColor: 0xffffff,
-      edgeAlpha: 0.6 + progress * 0.18,
+      edgeAlpha: 0.54 + progress * 0.16,
     };
   }
 
   return {
     fillColor: 0xf0d4a2,
-    fillAlpha: 0.06 + progress * 0.1,
+    fillAlpha: 0,
     edgeColor: 0xf7e6be,
-    edgeAlpha: 0.44 + progress * 0.12,
+    edgeAlpha: 0.38 + progress * 0.1,
   };
 }
 
@@ -235,6 +242,16 @@ export function getPlayerRenderY(positionY: number): number {
   // The surface strip is drawn as a decorative cap above row 0, so the rig
   // needs a small render-only lift while it is still in the surface zone.
   return positionY < 0.25 ? positionY - SURFACE_RENDER_OFFSET : positionY;
+}
+
+export function getDrillMaskRect(drill: DrillRenderState, tileSize: number): DrillMaskRect {
+  const erosion = getDirectionalDrillErosionRect(drill);
+  return {
+    x: (drill.x + erosion.visibleLeft) * tileSize,
+    y: (drill.row + erosion.visibleTop) * tileSize,
+    width: erosion.visibleWidth * tileSize,
+    height: erosion.visibleHeight * tileSize,
+  };
 }
 
 export function getShopRenderLayout(pad: ShopPad, tileSize: number): ShopRenderLayout {

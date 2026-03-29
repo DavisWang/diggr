@@ -23,6 +23,9 @@ const palette = {
   mint: '#5dd3b3',
   rose: '#d65a72',
   violet: '#8b64d9',
+  grassDark: '#34632e',
+  grassMid: '#5ca04a',
+  grassLight: '#a8d762',
   silverDark: '#66707e',
   silverMid: '#9099a6',
   silverBright: '#cfd6de',
@@ -264,41 +267,58 @@ function drawOreVein(kind) {
 
 function drawSurfaceCap(kind) {
   const canvas = createFrame();
-  fillRect(canvas, 0, 6, 16, 10, 'dirtMid');
-  fillRect(canvas, 0, 7, 16, 2, 'dirtLight');
+  fillRect(canvas, 0, 7, 16, 9, 'dirtMid');
+  fillRect(canvas, 0, 8, 16, 2, 'dirtLight');
   fillRect(canvas, 0, 14, 16, 2, 'dirtDark');
-  frameRect(canvas, 0, 6, 16, 10, 'outline');
-  line(canvas, 0, 7, 15, 7, 'cream');
-  line(canvas, 0, 8, 15, 8, 'gold');
+  frameRect(canvas, 0, 7, 16, 9, 'outline');
+  line(canvas, 0, 7, 15, 7, 'outline');
+  line(canvas, 0, 8, 15, 8, 'grassDark');
+  line(canvas, 0, 9, 15, 9, 'grassMid');
+
+  for (const [x, y, color] of [
+    [1, 6, 'grassLight'],
+    [2, 7, 'grassMid'],
+    [4, 6, 'grassLight'],
+    [5, 7, 'grassMid'],
+    [7, 6, 'grassLight'],
+    [8, 7, 'grassMid'],
+    [10, 6, 'grassLight'],
+    [11, 7, 'grassMid'],
+    [13, 6, 'grassLight'],
+    [14, 7, 'grassMid'],
+  ]) {
+    setPixel(canvas, x, y, color);
+  }
 
   if (kind === 'left') {
-    line(canvas, 1, 5, 5, 2, 'dirtLight');
-    line(canvas, 5, 2, 10, 4, 'cream');
-    fillRect(canvas, 1, 9, 3, 3, 'dirtDark');
+    line(canvas, 1, 6, 4, 4, 'grassLight');
+    line(canvas, 5, 6, 7, 5, 'grassMid');
+    fillRect(canvas, 1, 10, 3, 3, 'dirtDark');
     scatter(canvas, [
-      [4, 10, 'dirtLight'],
+      [4, 11, 'dirtLight'],
       [7, 12, 'dirtDark'],
-      [11, 10, 'dirtLight'],
+      [11, 11, 'dirtLight'],
     ]);
   } else if (kind === 'right') {
-    line(canvas, 14, 5, 10, 2, 'dirtLight');
-    line(canvas, 10, 2, 5, 4, 'cream');
-    fillRect(canvas, 12, 9, 3, 3, 'dirtDark');
+    line(canvas, 14, 6, 11, 4, 'grassLight');
+    line(canvas, 10, 6, 8, 5, 'grassMid');
+    fillRect(canvas, 12, 10, 3, 3, 'dirtDark');
     scatter(canvas, [
-      [4, 10, 'dirtLight'],
+      [4, 11, 'dirtLight'],
       [8, 12, 'dirtDark'],
-      [11, 10, 'dirtLight'],
+      [11, 11, 'dirtLight'],
     ]);
   } else {
     scatter(canvas, [
-      [2, 9, 'dirtLight'],
+      [2, 10, 'dirtLight'],
       [5, 11, 'dirtDark'],
       [8, 10, 'dirtLight'],
       [11, 12, 'dirtDark'],
       [13, 10, 'dirtLight'],
     ]);
-    line(canvas, 3, 4, 7, 2, 'dirtLight');
-    line(canvas, 12, 4, 8, 2, 'dirtLight');
+    line(canvas, 3, 6, 5, 4, 'grassLight');
+    line(canvas, 12, 6, 10, 4, 'grassLight');
+    setPixel(canvas, 8, 5, 'grassLight');
   }
 
   return canvas;

@@ -1,7 +1,9 @@
 import { SURFACE_PADS } from '../src/config/content';
 import {
   getDirectionalDrillErosionRect,
+  getDrillMaskRect,
   getDrillMaterialVisualCategory,
+  getDrillOverlayStyle,
   getDrillRigOffset,
   getDrillTerrainFrame,
   getPlayerRenderY,
@@ -83,7 +85,7 @@ describe('sprite rendering helpers', () => {
   });
 
   test('surface offset only applies near the top layer', () => {
-    expect(getPlayerRenderY(-0.2)).toBeCloseTo(-0.7, 5);
+    expect(getPlayerRenderY(-0.2)).toBeCloseTo(-0.22, 5);
     expect(getPlayerRenderY(3.4)).toBe(3.4);
   });
 
@@ -107,6 +109,16 @@ describe('sprite rendering helpers', () => {
     expect(getDrillMaterialVisualCategory('dirt')).toBe('soft');
     expect(getDrillMaterialVisualCategory('silverium')).toBe('ore');
     expect(getDrillMaterialVisualCategory('hidden_lava')).toBe('lava');
+  });
+
+  test('drill overlay keeps real block art visible for soft blocks and ore', () => {
+    const softOverlay = getDrillOverlayStyle({ x: 5, row: 7, progress: 0.45, direction: 'down', blockType: 'dirt' });
+    const oreOverlay = getDrillOverlayStyle({ x: 5, row: 7, progress: 0.45, direction: 'down', blockType: 'silverium' });
+    const lavaOverlay = getDrillOverlayStyle({ x: 5, row: 7, progress: 0.45, direction: 'down', blockType: 'lava' });
+
+    expect(softOverlay.fillAlpha).toBe(0);
+    expect(oreOverlay.fillAlpha).toBe(0);
+    expect(lavaOverlay.fillAlpha).toBeGreaterThan(0);
   });
 
   test('directional erosion crops blocks from the correct side', () => {
@@ -158,6 +170,35 @@ describe('sprite rendering helpers', () => {
       visibleWidth: 1,
       visibleHeight: 0,
       edge: 'top',
+    });
+  });
+
+  test('drill mask rect stays aligned to the eaten-away portion without resizing the source art', () => {
+    expect(
+      getDrillMaskRect({ x: 5, row: 7, progress: 0.25, direction: 'left', blockType: 'dirt' }, 48),
+    ).toEqual({
+      x: 240,
+      y: 336,
+      width: 36,
+      height: 48,
+    });
+
+    expect(
+      getDrillMaskRect({ x: 5, row: 7, progress: 0.25, direction: 'right', blockType: 'dirt' }, 48),
+    ).toEqual({
+      x: 252,
+      y: 336,
+      width: 36,
+      height: 48,
+    });
+
+    expect(
+      getDrillMaskRect({ x: 5, row: 7, progress: 0.25, direction: 'down', blockType: 'dirt' }, 48),
+    ).toEqual({
+      x: 240,
+      y: 348,
+      width: 48,
+      height: 36,
     });
   });
 

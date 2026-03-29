@@ -153,7 +153,7 @@ describe('game rules', () => {
     expect(getCell(state.world, 6, 2).type).toBe('air');
   });
 
-  test('prevents mining when the cargo hold is full', () => {
+  test('allows mining with a full cargo hold and discards the ore', () => {
     const state = createNewGame(1004);
     state.player.position = { x: 6.5, y: 2.2 };
     state.player.cargoCapacity = 1;
@@ -162,8 +162,13 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('Cargo hold is full');
-    expect(getCell(state.world, 6, 2).type).toBe('tinnite');
+    expect(result).toContain('Drilling Tinnite');
+    advanceDrill(state);
+
+    expect(getCell(state.world, 6, 2).type).toBe('air');
+    expect(state.player.cargoUsed).toBe(1);
+    expect(state.player.cargo.tinnite ?? 0).toBe(0);
+    expect(state.toast).toContain('discarded');
   });
 
   test('higher value blocks take longer to drill and better drills reduce duration', () => {
