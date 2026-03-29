@@ -10,6 +10,8 @@ import {
 import { hashSeed, mulberry32, randomInt } from '../lib/random';
 import type { BlockCell, BlockType, DepthBandConfig, EquipmentTier, WorldChunk, WorldState } from '../types';
 
+export type DrillMiningMode = 'native' | 'overclocked' | 'blocked';
+
 export function createWorld(seed: number): WorldState {
   return {
     seed,
@@ -34,11 +36,24 @@ export function isDestructibleType(type: BlockType): boolean {
 }
 
 export function canDrillTierMine(required: EquipmentTier | undefined, current: EquipmentTier): boolean {
+  return getDrillMiningMode(required, current) !== 'blocked';
+}
+
+export function getDrillMiningMode(required: EquipmentTier | undefined, current: EquipmentTier): DrillMiningMode {
   if (!required) {
-    return true;
+    return 'native';
   }
 
-  return getTierIndex(current) >= getTierIndex(required);
+  const tierDelta = getTierIndex(current) - getTierIndex(required);
+  if (tierDelta >= 0) {
+    return 'native';
+  }
+
+  if (tierDelta === -1) {
+    return 'overclocked';
+  }
+
+  return 'blocked';
 }
 
 export function getDepthBand(depth: number): DepthBandConfig {

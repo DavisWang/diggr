@@ -2,21 +2,26 @@
 
 ## Plan
 
-- [x] Add inline documentation in the core runtime modules that carry the hardest-to-rediscover behavior.
-- [x] Expand external docs for repo structure, architecture, local workflow, and GitHub Pages deployment.
-- [x] Add GitHub Pages deployment automation and Vite base-path handling for project-site deploys.
-- [x] Add repo scaffolding needed for a clean GitHub push, including local git initialization on `main`.
-- [x] Fix the first-run Pages workflow path so a brand-new repo can bootstrap Pages instead of failing on missing site state.
-- [x] Run the full test suite and production build.
+- [x] Generate a refinery sprite sheet and approval contact sheet for all sellable materials.
+- [x] Convert the refinery modal from text-heavy rows to icon-first cargo cards plus a summary panel.
+- [x] Replace the flat surface strip with tiled ground sprites in the terrain rendering path.
+- [x] Add sprite/config/UI/rendering regressions and rerun verification.
 
 ## Review
 
-- Added inline documentation to [logic.ts](/Users/davis.wang/Documents/diggr/src/game/logic.ts), [DiggrApp.ts](/Users/davis.wang/Documents/diggr/src/ui/DiggrApp.ts), [rendering.ts](/Users/davis.wang/Documents/diggr/src/phaser/rendering.ts), and [vite.config.ts](/Users/davis.wang/Documents/diggr/vite.config.ts) so the gameplay, app-shell, render-geometry, and deploy-path responsibilities are explicit in code.
-- Rewrote [README.md](/Users/davis.wang/Documents/diggr/README.md), expanded [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md), and added [deployment.md](/Users/davis.wang/Documents/diggr/docs/deployment.md) to document the repo shape, runtime boundaries, push checklist, and Pages workflow.
-- Added [deploy-pages.yml](/Users/davis.wang/Documents/diggr/.github/workflows/deploy-pages.yml) to build, test, upload, and deploy `dist/` on pushes to `main`, and updated [vite.config.ts](/Users/davis.wang/Documents/diggr/vite.config.ts) so GitHub Actions builds automatically use `/<repo-name>/` as the base path.
-- Added [.gitignore](/Users/davis.wang/Documents/diggr/.gitignore) and initialized this folder as a local git repository on `main`, which closes the biggest “not actually pushable” gap that existed before.
-- Updated the Pages workflow for first deploys: it now opts actions into Node 24 and asks `actions/configure-pages` to enable Pages automatically when the repo has not been bootstrapped yet.
+- Added a reproducible refinery sprite generator in [generate_refinery_shop_icons.py](/Users/davis.wang/Documents/diggr/scripts/generate_refinery_shop_icons.py) that emits both the runtime icon sheet and a labeled approval contact sheet for all `9` sellable cargo types.
+- Added refinery sprite metadata helpers in [content.ts](/Users/davis.wang/Documents/diggr/src/config/content.ts), including `REFINERY_TYPES` and `getRefinerySpriteFrame()`.
+- Converted the refinery modal in [renderers.ts](/Users/davis.wang/Documents/diggr/src/ui/renderers.ts) from text-heavy lines into icon-first cargo cards with quantity and subtotal badges, while keeping the summary panel and `Sell All` action.
+- Added supporting refinery card/icon styles in [styles.css](/Users/davis.wang/Documents/diggr/src/styles.css).
+- Replaced the flat surface strip with tiled terrain art by adding decorative surface-cap frames to [generateSpriteSheets.mjs](/Users/davis.wang/Documents/diggr/scripts/generateSpriteSheets.mjs), exposing the frame helper in [rendering.ts](/Users/davis.wang/Documents/diggr/src/phaser/rendering.ts), and rendering those tiles in [GameScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/GameScene.ts).
+- Regenerated sprite outputs:
+  - [refinery-shop-icons.png](/Users/davis.wang/Documents/diggr/src/assets/sprites/refinery-shop-icons.png)
+  - [refinery-shop-sprite-contact-sheet.png](/Users/davis.wang/Documents/diggr/docs/refinery-shop-sprite-contact-sheet.png)
+  - [terrain-sheet.png](/Users/davis.wang/Documents/diggr/src/assets/sprites/terrain-sheet.png)
+- Added regressions in [ui.test.ts](/Users/davis.wang/Documents/diggr/tests/ui.test.ts) and [rendering.test.ts](/Users/davis.wang/Documents/diggr/tests/rendering.test.ts) for refinery sprite coverage/card rendering and surface-ground frame cycling.
 - Verification:
+  - `python3 scripts/generate_refinery_shop_icons.py`
+  - `node scripts/generateSpriteSheets.mjs`
   - `npm test`
   - `npm run build`
-- Residual note: the production build still emits the existing Phaser chunk-size warning. Deployment is still valid; code-splitting is the next optimization pass if load size matters.
+- Residual note: the refinery contact sheet is the approval artifact for the cargo icon family, while the live refinery UI and surface terrain already use the new art.

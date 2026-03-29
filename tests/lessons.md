@@ -23,8 +23,14 @@
 - Keep a directional erosion regression for both horizontal drill directions. Left/right crop math is easy to invert if tests only cover “some width disappeared.”
 - Add exact geometry assertions when two render elements must stay aligned. Direction-only assertions were too weak to catch the rig drifting off the erosion face.
 - Add a post-animation state regression when render motion implies real movement. Otherwise the visual path can be correct while gameplay still snaps back on the final frame.
+- Keep a side-drill completion regression that preserves the rig's row while moving into the opened tile. Vertical settle logic is only valid for downward drilling.
+- Add an edge-biased downward-drill regression that recenters the rig into the opened column. Straight-down completion from an off-center start can otherwise fail only near tile boundaries.
+- Surface-layout tweaks for elevated interactables should be treated as geometry changes, not just art changes. Keep enough sky rows for the rendered position and label to fit comfortably.
+- Add a reload regression for save-station interactions. A save taken while a modal is open or while the rig is parked at a special interaction point should restore to a sane gameplay pose, not the raw serialized UI state.
 - Add a “committed action cannot be interrupted” regression for timed interactions. Directional input during drilling should not cancel, redirect, or move the rig.
 - If a modal advertises a keyboard close path, keep an app-level hotkey regression for it so browser capture and Phaser listeners cannot break it silently.
 - Add a stability regression for open modal DOM across idle ticks. Handler tests alone miss browser-only click failures caused by continuous rerendering.
 - Keep a game-over-specific idle-tick regression for recovery buttons. The real failure mode was repeated post-death rerenders, not missing click handlers.
+- Fall-damage regressions need both curve tests and landing-event tests. Pure distance assertions miss repeated grounded damage and miss the expected relief from last-second upward thrust.
 - Deployment automation needs a first-run path too. A workflow that only works after Pages is manually enabled is not actually self-serve.
+- Visual approval passes need a silhouette-first check. Small-sprite regressions are often “category is unreadable,” not “wrong colors,” so review artifacts should make shape ambiguity obvious early.

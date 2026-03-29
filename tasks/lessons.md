@@ -29,8 +29,14 @@
 - Left/right dig erosion must be validated against the block face the drill actually contacts. For side drilling, the tile should erode from the contact edge, not just from the movement direction label.
 - If two visuals are meant to line up, derive both from the same geometry. Separate “nice-feeling” offsets will drift from the erosion edge and read as broken.
 - If the animation implies a real positional transition, commit that transition to gameplay state on completion. Render-only offsets create obvious snap-back artifacts.
+- Horizontal side-drill completion should preserve the rig's current row. Forcing a vertical settle after a wall drill reads as a snap and can collide with neighboring tiles.
+- Downward drill entry from a tile edge needs horizontal recentering into the opened column. Keeping `x` fixed lets adjacent wall collisions veto an otherwise valid drop.
+- Elevated surface interactions need enough vertical sky budget in the shared surface config. If a floating pad is meant to read as “in the sky,” move the sky boundary with it instead of only nudging the sprite.
+- Save/load should serialize a safe resume state, not the literal UI interaction moment. Persisting the save-balloon modal and in-air pose makes reload feel broken even though the save itself succeeded.
 - If gameplay says an action is committed, lock out conflicting movement until it resolves. Timed mining should not be cancellable by ordinary control input.
 - Do not claim a modal hotkey in UI copy unless the app shell actually handles it. Inventory advertised `X` close behavior that was never wired.
 - Avoid rerendering modal DOM every frame while paused. Browser click reliability depends on stable nodes, especially for recovery actions like game-over buttons.
 - Transition flags must represent transitions, not steady state. Re-emitting `gameOver=true` every frame kept the recovery modal in a constant rerender loop and made the buttons effectively unclickable.
+- Fall damage should trigger from a genuine airborne landing event and scale with impact severity, not from any generic downward collision after a long drop. Otherwise grounded follow-up ticks and late-thrust slowdowns both feel wrong.
 - GitHub Pages workflows should bootstrap Pages when possible instead of assuming the repo is already enabled. First deploys on a brand-new repo are a different state than steady-state deploys.
+- At `16x16`, category readability depends on silhouette first, not palette accents. If an icon family is ambiguous in review, strengthen the base shape before adding more detail.

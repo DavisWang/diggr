@@ -94,6 +94,8 @@ export interface DrillRigOffset {
   yTiles: number;
 }
 
+const SURFACE_GROUND_FRAMES = [14, 15, 16] as const;
+
 // Rendering helpers stay pure so tests can verify visual geometry without a
 // browser or Phaser scene lifecycle. GameScene consumes these values directly.
 export function getTerrainFrame(cell: BlockCell, x = 0, row = 0): number | null {
@@ -221,8 +223,10 @@ export function getDrillRigOffset(
 
   const contactY = drill.row + erosion.visibleTop;
   const alignedCenterY = contactY - PLAYER_HALF_HEIGHT - DRILL_COMPLETION_INSET;
+  const targetCenterX = drill.x + 0.5;
+  const progress = clamp01(drill.progress);
   return {
-    xTiles: 0,
+    xTiles: (targetCenterX - playerPosition.x) * progress,
     yTiles: alignedCenterY - playerPosition.y,
   };
 }
@@ -243,6 +247,10 @@ export function getShopRenderLayout(pad: ShopPad, tileSize: number): ShopRenderL
     spriteHeight: pad.spriteHeightTiles * tileSize,
     fontSize: Math.max(12, Math.round(tileSize * 0.24)),
   };
+}
+
+export function getSurfaceGroundFrame(x: number): number {
+  return SURFACE_GROUND_FRAMES[Math.abs(x) % SURFACE_GROUND_FRAMES.length];
 }
 
 export function resolveDiggerRenderState(input: ResolveDiggerRenderStateInput): ResolvedDiggerRenderState {

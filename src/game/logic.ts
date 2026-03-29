@@ -15,6 +15,9 @@ import {
   SURFACE_PADS,
   SURFACE_SKY_ROWS,
   TELEPORT_SERVICE_TARGET,
+  TESTING_MAX_FUEL,
+  TESTING_MAX_HEALTH,
+  TESTING_START_CASH,
   UPGRADE_TIER_DEFS,
   WORLD_WIDTH,
   getTierIndex,
@@ -25,11 +28,13 @@ import {
   createWorld,
   discoverCell,
   ensureRows,
+  getDrillMiningMode,
   getCell,
   isDestructibleType,
   isSolidType,
   setCell,
 } from './world';
+import type { DrillMiningMode } from './world';
 import type {
   ActiveDrillState,
   BlockType,
@@ -55,12 +60,13 @@ import type {
 // logic.ts is the gameplay source of truth. Phaser feeds it input and time, but
 // all mine generation, survival rules, economy updates, and modal state changes
 // happen here so saves and tests stay deterministic.
-export function createNewGame(seed = Date.now()): GameState {
+export function createNewGame(seed = Date.now(), options: { testingMode?: boolean } = {}): GameState {
   const world = createWorld(seed);
   ensureRows(world, 0, 120);
+  const testingMode = Boolean(options.testingMode);
 
-  const player = createPlayer();
-  syncPlayerDerived(player);
+  const player = createPlayer(testingMode);
+  syncPlayerDerived(player, testingMode);
 
   return {
     status: 'active',
@@ -74,16 +80,19 @@ export function createNewGame(seed = Date.now()): GameState {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       hasVisitedUnderground: false,
+      testingMode,
     },
-    toast: 'Dig down, sell ore, and upgrade the rig.',
+    toast: testingMode ? 'Testing mode active. Fuel, hull, and cash are boosted for sandbox runs.' : 'Dig down, sell ore, and upgrade the rig.',
     blockedShopUntilExit: null,
   };
 }
 
 export function restoreGame(state: GameState): GameState {
+  normalizeSaveStationResumeState(state);
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
   state.player.activeDrill = state.player.activeDrill ?? null;
-  syncPlayerDerived(state.player);
+  state.meta.testingMode = Boolean(state.meta.testingMode);
+  syncPlayerDerived(state.player, state.meta.testingMode);
   ensureRows(state.world, 0, Math.max(120, Math.ceil(state.player.position.y) + 40));
   return state;
 }
@@ -326,10 +335,17 @@ export function getDerivedStats(player: PlayerState): {
   };
 }
 
-export function syncPlayerDerived(player: PlayerState): void {
+export function syncPlayerDerived(player: PlayerState, testingMode = false): void {
   player.maxHealth = UPGRADE_TIER_DEFS.hull[player.equipment.hull].statValue;
   player.maxFuel = UPGRADE_TIER_DEFS.fuel_tank[player.equipment.fuel_tank].statValue;
   player.cargoCapacity = UPGRADE_TIER_DEFS.cargo_hold[player.equipment.cargo_hold].statValue;
+
+  if (testingMode) {
+    player.maxHealth = TESTING_MAX_HEALTH;
+    player.maxFuel = TESTING_MAX_FUEL;
+    player.cash = Math.max(player.cash, TESTING_START_CASH);
+  }
+
   player.health = Math.min(player.health, player.maxHealth);
   player.fuel = Math.min(player.fuel, player.maxFuel);
   player.cargoUsed = getCargoUsed(player.cargo);
@@ -360,9 +376,11 @@ export function buyUpgrade(state: GameState, category: UpgradeType, tier: Equipm
     return 'Not enough cash for that upgrade.';
   }
 
-  state.player.cash -= def.price;
+  if (!state.meta.testingMode) {
+    state.player.cash -= def.price;
+  }
   state.player.equipment[category] = tier;
-  syncPlayerDerived(state.player);
+  syncPlayerDerived(state.player, state.meta.testingMode);
   state.toast = `${def.label} installed.`;
   return state.toast;
 }
@@ -377,7 +395,9 @@ export function buyConsumable(state: GameState, type: ConsumableType): string | 
     return 'Inventory cap reached for that item.';
   }
 
-  state.player.cash -= def.price;
+  if (!state.meta.testingMode) {
+    state.player.cash -= def.price;
+  }
   state.player.inventory[type] += 1;
   state.toast = `${def.label} added to inventory.`;
   return state.toast;
@@ -434,7 +454,9 @@ export function repairAndRefuel(state: GameState): string | null {
     return 'Not enough cash to repair and refuel.';
   }
 
-  state.player.cash -= cost;
+  if (!state.meta.testingMode) {
+    state.player.cash -= cost;
+  }
   state.player.health = state.player.maxHealth;
   state.player.fuel = state.player.maxFuel;
   state.toast = `Rig serviced for $${cost}.`;
@@ -533,7 +555,11 @@ export function getDrillRenderState(player: PlayerState): DrillRenderState | nul
   };
 }
 
-export function calculateDrillDurationSeconds(blockType: BlockType, drillTier: EquipmentTier): number {
+export function calculateDrillDurationSeconds(
+  blockType: BlockType,
+  drillTier: EquipmentTier,
+  miningMode: DrillMiningMode = 'native',
+): number {
   const block = BLOCK_DEFS[blockType];
   const hardnessSeconds =
     block.hardness === 'soft'
@@ -544,14 +570,20 @@ export function calculateDrillDurationSeconds(blockType: BlockType, drillTier: E
           ? 0.32
           : 0;
   const digSpeed = UPGRADE_TIER_DEFS.drill[drillTier].digSpeed ?? 1;
+  const modeMultiplier = miningMode === 'overclocked' ? PHYSICS.overtierDrillTimeMultiplier : 1;
   return Math.max(
     0.18,
-    (PHYSICS.digTimeBaseSeconds + hardnessSeconds + block.value * PHYSICS.digTimeValueFactorSeconds) / digSpeed,
+    ((PHYSICS.digTimeBaseSeconds + hardnessSeconds + block.value * PHYSICS.digTimeValueFactorSeconds) * modeMultiplier) /
+      digSpeed,
   );
 }
 
-export function calculateFallDamage(maxHealth: number, fallDistance: number): number {
+export function calculateFallDamage(maxHealth: number, fallDistance: number, impactSpeed = PHYSICS.fallDamageFullImpactSpeed): number {
   if (fallDistance <= PHYSICS.fallDamageStartDistance) {
+    return 0;
+  }
+
+  if (impactSpeed <= PHYSICS.fallDamageSafeImpactSpeed) {
     return 0;
   }
 
@@ -561,8 +593,14 @@ export function calculateFallDamage(maxHealth: number, fallDistance: number): nu
     0,
     1,
   );
+  const normalizedImpact = clamp(
+    (impactSpeed - PHYSICS.fallDamageSafeImpactSpeed) /
+      (PHYSICS.fallDamageFullImpactSpeed - PHYSICS.fallDamageSafeImpactSpeed),
+    0,
+    1,
+  );
 
-  return maxHealth * PHYSICS.fallDamageMaxHealthFraction * normalizedDistance;
+  return maxHealth * PHYSICS.fallDamageMaxHealthFraction * normalizedDistance * normalizedImpact;
 }
 
 export function findShopAtPosition(position: Vector2): ShopPad | null {
@@ -577,18 +615,18 @@ export function findShopAtPosition(position: Vector2): ShopPad | null {
   );
 }
 
-function createPlayer(): PlayerState {
+function createPlayer(testingMode = false): PlayerState {
   const equipment = createEquipment();
   const inventory = createInventory();
 
   return {
     position: { x: ENTRY_COLUMN - PLAYER_HALF_WIDTH - 0.04, y: -PLAYER_HALF_HEIGHT - 0.02 },
     velocity: { x: 0, y: 0 },
-    health: UPGRADE_TIER_DEFS.hull[equipment.hull].statValue,
-    maxHealth: UPGRADE_TIER_DEFS.hull[equipment.hull].statValue,
-    fuel: UPGRADE_TIER_DEFS.fuel_tank[equipment.fuel_tank].statValue,
-    maxFuel: UPGRADE_TIER_DEFS.fuel_tank[equipment.fuel_tank].statValue,
-    cash: PLAYER_START_CASH,
+    health: testingMode ? TESTING_MAX_HEALTH : UPGRADE_TIER_DEFS.hull[equipment.hull].statValue,
+    maxHealth: testingMode ? TESTING_MAX_HEALTH : UPGRADE_TIER_DEFS.hull[equipment.hull].statValue,
+    fuel: testingMode ? TESTING_MAX_FUEL : UPGRADE_TIER_DEFS.fuel_tank[equipment.fuel_tank].statValue,
+    maxFuel: testingMode ? TESTING_MAX_FUEL : UPGRADE_TIER_DEFS.fuel_tank[equipment.fuel_tank].statValue,
+    cash: testingMode ? TESTING_START_CASH : PLAYER_START_CASH,
     totalEarnings: 0,
     cargoUsed: 0,
     cargoCapacity: UPGRADE_TIER_DEFS.cargo_hold[equipment.cargo_hold].statValue,
@@ -652,11 +690,14 @@ export function attemptDig(
   }
 
   const block = BLOCK_DEFS[cell.type];
+  const miningMode = getDrillMiningMode(block.requiredDrill, drillTier);
   if (!canDrillTierMine(block.requiredDrill, drillTier)) {
     return `${block.label} needs a better drill.`;
   }
 
-  const fuelCost = PHYSICS.digFuelBase + block.value / 42;
+  const fuelCost =
+    (PHYSICS.digFuelBase + block.value / 42) *
+    (miningMode === 'overclocked' ? PHYSICS.overtierDrillFuelMultiplier : 1);
   if (state.player.fuel < fuelCost) {
     return 'Not enough fuel to start the drill.';
   }
@@ -672,13 +713,13 @@ export function attemptDig(
     direction,
     blockType: cell.type,
     fuelCost,
-    remainingSeconds: calculateDrillDurationSeconds(cell.type, drillTier),
-    totalSeconds: calculateDrillDurationSeconds(cell.type, drillTier),
+    remainingSeconds: calculateDrillDurationSeconds(cell.type, drillTier, miningMode),
+    totalSeconds: calculateDrillDurationSeconds(cell.type, drillTier, miningMode),
   };
   state.player.velocity = { x: 0, y: 0 };
   state.player.airborne = false;
   state.player.airbornePeakY = state.player.position.y;
-  return `Drilling ${block.label}...`;
+  return miningMode === 'overclocked' ? `Overclock-drilling ${block.label}...` : `Drilling ${block.label}...`;
 }
 
 function getDigTarget(position: Vector2, direction: Direction): { x: number; row: number } | null {
@@ -773,15 +814,16 @@ function cancelActiveDrill(state: GameState): void {
 
 function movePlayerIntoResolvedDrillSpace(state: GameState, drill: ActiveDrillState): void {
   const settledRowY = drill.row + 1 - PLAYER_HALF_HEIGHT - DRILL_COMPLETION_INSET;
-  const nextPosition =
-    drill.direction === 'left'
-      ? { x: drill.x + PLAYER_HALF_WIDTH + DRILL_COMPLETION_INSET, y: settledRowY }
-      : drill.direction === 'right'
-        ? { x: drill.x + 1 - PLAYER_HALF_WIDTH - DRILL_COMPLETION_INSET, y: settledRowY }
-        : { x: state.player.position.x, y: settledRowY };
-
-  if (!collidesAt(state, nextPosition.x, nextPosition.y)) {
-    state.player.position = nextPosition;
+  if (drill.direction === 'left' || drill.direction === 'right') {
+    state.player.position = {
+      x:
+        drill.direction === 'left'
+          ? drill.x + PLAYER_HALF_WIDTH + DRILL_COMPLETION_INSET
+          : drill.x + 1 - PLAYER_HALF_WIDTH - DRILL_COMPLETION_INSET,
+      y: state.player.position.y,
+    };
+  } else {
+    state.player.position = { x: drill.x + 0.5, y: settledRowY };
   }
 
   state.player.velocity = { x: 0, y: 0 };
@@ -855,12 +897,14 @@ function movePlayer(state: GameState, dtSeconds: number): void {
       if (!collidesAt(state, state.player.position.x, nextY)) {
         state.player.position.y = nextY;
       } else {
-        if (stepY > 0) {
+        if (stepY > 0 && state.player.airborne) {
           const fallDistance = state.player.position.y - state.player.airbornePeakY;
-          const damage = calculateFallDamage(state.player.maxHealth, fallDistance);
+          const damage = calculateFallDamage(state.player.maxHealth, fallDistance, Math.max(0, state.player.velocity.y));
           if (damage > 0) {
             damagePlayer(state.player, damage, 'Heavy landing.');
           }
+          state.player.airborne = false;
+          state.player.airbornePeakY = state.player.position.y;
         }
         state.player.velocity.y = 0;
         allowY = false;
@@ -926,5 +970,23 @@ function hasMovementIntent(controls: ControlState): boolean {
 }
 
 function isDismissibleShopModal(modalType: ModalState['type']): modalType is ShopType {
-  return modalType === 'upgrades' || modalType === 'consumables' || modalType === 'refinery' || modalType === 'service';
+  return modalType === 'upgrades' || modalType === 'consumables' || modalType === 'refinery' || modalType === 'service' || modalType === 'save';
+}
+
+function normalizeSaveStationResumeState(state: GameState): void {
+  if (state.modal.type !== 'save' && state.blockedShopUntilExit !== 'save') {
+    return;
+  }
+
+  const savePad = SURFACE_PADS.find((pad) => pad.shop === 'save');
+  state.mode = 'gameplay';
+  state.modal = { type: 'none' };
+  state.modalDismissGraceRemaining = 0;
+  state.blockedShopUntilExit = 'save';
+  state.player.position = {
+    x: savePad?.x ?? state.player.position.x,
+    y: -PLAYER_HALF_HEIGHT - 0.02,
+  };
+  state.player.velocity = { x: 0, y: 0 };
+  state.player.lastSurfaceZone = null;
 }

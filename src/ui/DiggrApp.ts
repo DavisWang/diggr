@@ -77,14 +77,11 @@ export class DiggrApp {
   }
 
   startNewGame(): void {
-    this.screen = 'gameplay';
-    this.gameState = createNewGame();
-    this.showHowTo = false;
-    this.uiAccumulator = 1;
-    this.uiDirty = true;
-    this.overlayRoot.innerHTML = '';
-    this.bootGame('gameplay');
-    this.render();
+    this.startGame(false);
+  }
+
+  startTestingGame(): void {
+    this.startGame(true);
   }
 
   loadSavedGame(): void {
@@ -103,8 +100,9 @@ export class DiggrApp {
   }
 
   restartGame(): void {
+    const testingMode = Boolean(this.gameState?.meta.testingMode);
     clearSaveGame();
-    this.startNewGame();
+    this.startGame(testingMode);
   }
 
   getState(): GameState | null {
@@ -141,13 +139,24 @@ export class DiggrApp {
     return result;
   }
 
-  openShop(shop: 'upgrades' | 'consumables' | 'refinery' | 'service'): void {
+  openShop(shop: 'upgrades' | 'consumables' | 'refinery' | 'service' | 'save'): void {
     if (!this.gameState) {
       return;
     }
 
     openShop(this.gameState, shop);
     this.uiDirty = true;
+    this.render();
+  }
+
+  private startGame(testingMode: boolean): void {
+    this.screen = 'gameplay';
+    this.gameState = createNewGame(undefined, { testingMode });
+    this.showHowTo = false;
+    this.uiAccumulator = 1;
+    this.uiDirty = true;
+    this.overlayRoot.innerHTML = '';
+    this.bootGame('gameplay');
     this.render();
   }
 
@@ -241,6 +250,7 @@ export class DiggrApp {
         },
         {
           onNewGame: () => this.startNewGame(),
+          onTestingGame: () => this.startTestingGame(),
           onLoadGame: () => this.loadSavedGame(),
           onToggleHowTo: () => {
             this.showHowTo = !this.showHowTo;
@@ -338,6 +348,17 @@ export class DiggrApp {
 
         repairAndRefuel(this.gameState);
         persistState(this.gameState);
+        this.uiDirty = true;
+        this.render();
+      },
+      onSaveGame: () => {
+        if (!this.gameState) {
+          return;
+        }
+
+        closeModal(this.gameState);
+        persistState(this.gameState);
+        this.gameState.toast = 'Game saved.';
         this.uiDirty = true;
         this.render();
       },

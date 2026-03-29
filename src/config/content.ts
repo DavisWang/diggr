@@ -18,12 +18,15 @@ export const STORAGE_KEY = 'diggr-save-slot';
 export const WORLD_WIDTH = 13;
 export const WORLD_CHUNK_SIZE = 24;
 export const TILE_SIZE = 48;
-export const SURFACE_SKY_ROWS = 4;
+export const SURFACE_SKY_ROWS = 5;
 export const PLAYER_HALF_WIDTH = 0.34;
 export const PLAYER_HALF_HEIGHT = 0.42;
 export const DRILL_COMPLETION_INSET = 0.02;
 export const ENTRY_COLUMN = Math.floor(WORLD_WIDTH / 2);
 export const ENTRY_SHAFT_DEPTH = 2;
+export const TESTING_MAX_HEALTH = 10_000;
+export const TESTING_MAX_FUEL = 10_000;
+export const TESTING_START_CASH = 999_999;
 
 export const EQUIPMENT_TIERS: EquipmentTier[] = [
   'bronzium',
@@ -43,11 +46,16 @@ export const UPGRADE_TYPES: UpgradeType[] = [
   'radiator',
 ];
 
+export const UPGRADE_ICON_FRAME_SIZE = 16;
+export const UPGRADE_ICON_SHEET_COLUMNS = EQUIPMENT_TIERS.length;
+export const UPGRADE_ICON_SHEET_ROWS = UPGRADE_TYPES.length;
+
 export const SHOP_TYPES: ShopType[] = [
   'upgrades',
   'consumables',
   'refinery',
   'service',
+  'save',
 ];
 
 export const CONSUMABLE_TYPES: ConsumableType[] = [
@@ -60,6 +68,10 @@ export const CONSUMABLE_TYPES: ConsumableType[] = [
   'matter_transporter',
   'quantum_fissurizer',
 ];
+
+export const CONSUMABLE_ICON_FRAME_SIZE = 16;
+export const CONSUMABLE_ICON_SHEET_COLUMNS = 4;
+export const CONSUMABLE_ICON_SHEET_ROWS = Math.ceil(CONSUMABLE_TYPES.length / CONSUMABLE_ICON_SHEET_COLUMNS);
 
 export const BLOCK_DEFS: Record<BlockType, BlockDef> = {
   air: {
@@ -217,6 +229,11 @@ const SELLABLE_MATERIALS: SellableMaterial[] = [
   'alien_artifact',
 ];
 
+export const REFINERY_TYPES: SellableMaterial[] = SELLABLE_MATERIALS;
+export const REFINERY_ICON_FRAME_SIZE = 16;
+export const REFINERY_ICON_SHEET_COLUMNS = 3;
+export const REFINERY_ICON_SHEET_ROWS = Math.ceil(REFINERY_TYPES.length / REFINERY_ICON_SHEET_COLUMNS);
+
 export const MATERIAL_DEFS: MaterialSellDef[] = SELLABLE_MATERIALS.map((type) => ({
   type,
   label: BLOCK_DEFS[type].label,
@@ -229,7 +246,7 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
       tier: 'bronzium',
       label: 'Bronzium Drill',
       price: 0,
-      description: 'Starter drill. Mines dirt, tinnite, and bronzium.',
+      description: 'Starter drill. Efficient on bronzium-tier ore and can overclock into silverium slowly.',
       statValue: 1,
       digSpeed: 1,
     },
@@ -237,7 +254,7 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
       tier: 'silverium',
       label: 'Silverium Drill',
       price: 220,
-      description: 'Unlocks silverium and speeds up drill cycles.',
+      description: 'Efficient on silverium-tier ore and can overclock into goldium with a penalty.',
       statValue: 2,
       digSpeed: 1.18,
     },
@@ -245,7 +262,7 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
       tier: 'goldium',
       label: 'Goldium Drill',
       price: 450,
-      description: 'Unlocks goldium and improves block clear speed.',
+      description: 'Efficient on goldium-tier ore and can overclock into mithrium when needed.',
       statValue: 3,
       digSpeed: 1.38,
     },
@@ -253,23 +270,23 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
       tier: 'mithrium',
       label: 'Mithrium Drill',
       price: 760,
-      description: 'Unlocks mithrium and keeps the dig loop moving at depth.',
+      description: 'Efficient on mithrium-tier ore and can overclock into adamantium deeper down.',
       statValue: 4,
       digSpeed: 1.62,
     },
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Drill',
-      price: 1180,
-      description: 'Unlocks adamantium and reduces downtime in dense bands.',
+      price: 1350,
+      description: 'Efficient on adamantium-tier ore and can overclock into runite at a steep cost.',
       statValue: 5,
       digSpeed: 1.94,
     },
     runite: {
       tier: 'runite',
       label: 'Runite Drill',
-      price: 1680,
-      description: 'Top-end drill. Unlocks runite and shaves drill delay materially.',
+      price: 2000,
+      description: 'Top-tier drill for the deepest veins with no overclock penalty needed.',
       statValue: 6,
       digSpeed: 2.3,
     },
@@ -306,14 +323,14 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Hull',
-      price: 940,
+      price: 1100,
       description: 'High-end impact resistance.',
       statValue: 230,
     },
     runite: {
       tier: 'runite',
       label: 'Runite Hull',
-      price: 1320,
+      price: 1600,
       description: 'Maximum health pool for late depth bands.',
       statValue: 275,
     },
@@ -350,14 +367,14 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Cargo Hold',
-      price: 780,
+      price: 920,
       description: 'Supports deeper ore mix and more TNT/teleport margin.',
       statValue: 52,
     },
     runite: {
       tier: 'runite',
       label: 'Runite Cargo Hold',
-      price: 1120,
+      price: 1350,
       description: 'End-game cargo capacity.',
       statValue: 66,
     },
@@ -394,14 +411,14 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Thrusters',
-      price: 940,
+      price: 1100,
       description: 'High-lift upgrade for serious cargo.',
       statValue: 1.95,
     },
     runite: {
       tier: 'runite',
       label: 'Runite Thrusters',
-      price: 1320,
+      price: 1600,
       description: 'Maximum lift and responsiveness.',
       statValue: 2.3,
     },
@@ -438,14 +455,14 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Fuel Tank',
-      price: 790,
+      price: 930,
       description: 'Strong reserve for bigger routes.',
       statValue: 250,
     },
     runite: {
       tier: 'runite',
       label: 'Runite Fuel Tank',
-      price: 1140,
+      price: 1380,
       description: 'Largest fuel reserve in the game.',
       statValue: 300,
     },
@@ -490,7 +507,7 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     adamantium: {
       tier: 'adamantium',
       label: 'Adamantium Radiator',
-      price: 940,
+      price: 1100,
       description: 'Carries the digger safely into late-depth bands.',
       statValue: 5,
       safeDepth: 170,
@@ -499,7 +516,7 @@ export const UPGRADE_TIER_DEFS: Record<UpgradeType, Record<EquipmentTier, Upgrad
     runite: {
       tier: 'runite',
       label: 'Runite Radiator',
-      price: 1320,
+      price: 1600,
       description: 'Best heat tolerance and lava mitigation.',
       statValue: 6,
       safeDepth: 240,
@@ -669,9 +686,13 @@ export const PHYSICS = {
   digFuelBase: 3.2,
   digTimeBaseSeconds: 0.36,
   digTimeValueFactorSeconds: 0.0043,
+  overtierDrillFuelMultiplier: 1.85,
+  overtierDrillTimeMultiplier: 1.7,
   ambientHeatPerSecond: 2.8,
   fallDamageStartDistance: 10,
   fallDamageMaxDistance: 30,
+  fallDamageSafeImpactSpeed: 3.2,
+  fallDamageFullImpactSpeed: 9.5,
   fallDamageMaxHealthFraction: 0.8,
 };
 
@@ -733,6 +754,19 @@ export const SURFACE_PADS: ShopPad[] = [
     spriteOffsetY: 0.92,
     labelOffsetY: -0.78,
   },
+  {
+    shop: 'save',
+    label: 'Save',
+    color: '#ffd56b',
+    x: 6.35,
+    y: -3.05,
+    width: 1.9,
+    spriteFrame: 4,
+    spriteWidthTiles: 1.08,
+    spriteHeightTiles: 1.42,
+    spriteOffsetY: 1.05,
+    labelOffsetY: -1.02,
+  },
 ];
 
 export const TELEPORT_SERVICE_TARGET = { x: 10.85, y: -1.45 };
@@ -746,4 +780,16 @@ export const HOW_TO_COPY = [
 
 export function getTierIndex(tier: EquipmentTier): number {
   return EQUIPMENT_TIERS.indexOf(tier);
+}
+
+export function getUpgradeSpriteFrame(category: UpgradeType, tier: EquipmentTier): number {
+  return UPGRADE_TYPES.indexOf(category) * UPGRADE_ICON_SHEET_COLUMNS + getTierIndex(tier);
+}
+
+export function getConsumableSpriteFrame(type: ConsumableType): number {
+  return CONSUMABLE_TYPES.indexOf(type);
+}
+
+export function getRefinerySpriteFrame(type: SellableMaterial): number {
+  return REFINERY_TYPES.indexOf(type);
 }

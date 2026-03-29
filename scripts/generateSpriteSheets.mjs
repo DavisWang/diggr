@@ -58,6 +58,9 @@ const terrainFrames = [
   drawArtifactCore(),
   drawArtifactTablet(),
   drawArtifactRelic(),
+  drawSurfaceCap('left'),
+  drawSurfaceCap('mid'),
+  drawSurfaceCap('right'),
 ];
 
 const diggerFrames = [
@@ -256,6 +259,48 @@ function drawOreVein(kind) {
     default:
       break;
   }
+  return canvas;
+}
+
+function drawSurfaceCap(kind) {
+  const canvas = createFrame();
+  fillRect(canvas, 0, 6, 16, 10, 'dirtMid');
+  fillRect(canvas, 0, 7, 16, 2, 'dirtLight');
+  fillRect(canvas, 0, 14, 16, 2, 'dirtDark');
+  frameRect(canvas, 0, 6, 16, 10, 'outline');
+  line(canvas, 0, 7, 15, 7, 'cream');
+  line(canvas, 0, 8, 15, 8, 'gold');
+
+  if (kind === 'left') {
+    line(canvas, 1, 5, 5, 2, 'dirtLight');
+    line(canvas, 5, 2, 10, 4, 'cream');
+    fillRect(canvas, 1, 9, 3, 3, 'dirtDark');
+    scatter(canvas, [
+      [4, 10, 'dirtLight'],
+      [7, 12, 'dirtDark'],
+      [11, 10, 'dirtLight'],
+    ]);
+  } else if (kind === 'right') {
+    line(canvas, 14, 5, 10, 2, 'dirtLight');
+    line(canvas, 10, 2, 5, 4, 'cream');
+    fillRect(canvas, 12, 9, 3, 3, 'dirtDark');
+    scatter(canvas, [
+      [4, 10, 'dirtLight'],
+      [8, 12, 'dirtDark'],
+      [11, 10, 'dirtLight'],
+    ]);
+  } else {
+    scatter(canvas, [
+      [2, 9, 'dirtLight'],
+      [5, 11, 'dirtDark'],
+      [8, 10, 'dirtLight'],
+      [11, 12, 'dirtDark'],
+      [13, 10, 'dirtLight'],
+    ]);
+    line(canvas, 3, 4, 7, 2, 'dirtLight');
+    line(canvas, 12, 4, 8, 2, 'dirtLight');
+  }
+
   return canvas;
 }
 

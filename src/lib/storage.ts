@@ -1,4 +1,4 @@
-import { SAVE_VERSION, STORAGE_KEY } from '../config/content';
+import { PLAYER_HALF_HEIGHT, SAVE_VERSION, STORAGE_KEY, SURFACE_PADS } from '../config/content';
 import type { GameState, SaveData } from '../types';
 
 export function hasSaveGame(): boolean {
@@ -39,17 +39,43 @@ export function persistState(state: GameState): SaveData | null {
   const payload: SaveData = {
     version: SAVE_VERSION,
     savedAt: new Date().toISOString(),
-    state: {
-      ...state,
-      meta: {
-        ...state.meta,
-        updatedAt: new Date().toISOString(),
-      },
-    },
+    state: buildPersistedState(state),
   };
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   return payload;
+}
+
+function buildPersistedState(state: GameState): GameState {
+  const normalizedState: GameState = {
+    ...state,
+    meta: {
+      ...state.meta,
+      updatedAt: new Date().toISOString(),
+    },
+  };
+
+  if (state.modal.type !== 'save' && state.blockedShopUntilExit !== 'save') {
+    return normalizedState;
+  }
+
+  const savePad = SURFACE_PADS.find((pad) => pad.shop === 'save');
+  const safeSurfaceX = savePad?.x ?? state.player.position.x;
+  const safeSurfaceY = -PLAYER_HALF_HEIGHT - 0.02;
+
+  return {
+    ...normalizedState,
+    mode: 'gameplay',
+    modal: { type: 'none' },
+    modalDismissGraceRemaining: 0,
+    blockedShopUntilExit: 'save',
+    player: {
+      ...normalizedState.player,
+      position: { x: safeSurfaceX, y: safeSurfaceY },
+      velocity: { x: 0, y: 0 },
+      lastSurfaceZone: null,
+    },
+  };
 }
 
 export function clearSaveGame(): void {

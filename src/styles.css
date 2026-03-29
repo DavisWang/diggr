@@ -111,14 +111,27 @@ select {
 .title-card {
   display: grid;
   gap: 20px;
+  justify-items: center;
+  text-align: center;
 }
 
 .title-heading {
   margin: 0;
-  font-size: clamp(2.6rem, 7vw, 4.4rem);
-  letter-spacing: 0.18rem;
-  color: #ffde7b;
+  font-family: "Courier New", "Lucida Console", monospace;
+  font-size: clamp(4.2rem, 12vw, 7.6rem);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: 0.42rem;
+  color: #ffe27d;
   text-transform: uppercase;
+  text-shadow:
+    0 4px 0 #8b4e17,
+    0 8px 0 #4d2810,
+    4px 0 0 #261408,
+    -4px 0 0 #261408,
+    0 -4px 0 #261408,
+    0 12px 22px rgba(0, 0, 0, 0.45);
+  image-rendering: pixelated;
 }
 
 .title-tagline {
@@ -126,6 +139,7 @@ select {
   color: #d7d6e9;
   max-width: 44rem;
   line-height: 1.5;
+  text-align: center;
 }
 
 .title-actions,
@@ -214,11 +228,78 @@ select {
   grid-template-columns: minmax(160px, 220px) minmax(220px, 1fr) minmax(220px, 320px);
 }
 
+.shop-layout--two-column {
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 320px);
+}
+
 .shop-category-list,
 .choice-grid,
 .sell-list,
 .inventory-grid {
   align-content: start;
+}
+
+.upgrade-choice-grid {
+  grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+}
+
+.upgrade-icon-button {
+  min-height: 82px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upgrade-icon-sprite {
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.3));
+}
+
+.consumable-icon-button {
+  min-height: 92px;
+  padding: 10px 12px;
+  display: grid;
+  justify-items: center;
+  align-content: space-between;
+  gap: 6px;
+}
+
+.consumable-icon-sprite {
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.3));
+}
+
+.refinery-icon-sprite {
+  display: block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.3));
+}
+
+.choice-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 4px 8px;
+  border: 2px solid rgba(246, 235, 201, 0.45);
+  background: rgba(13, 20, 34, 0.95);
+  color: #ffe27d;
+  font-size: 0.82rem;
+  line-height: 1;
+}
+
+.choice-badge--owned {
+  color: #8fd0ff;
+}
+
+.choice-badge--value {
+  color: #ffd879;
 }
 
 .detail-panel {
@@ -259,7 +340,35 @@ select {
 }
 
 .inventory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+}
+
+.refinery-grid {
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.refinery-entry-card {
+  padding: 12px 10px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.refinery-card-label {
+  min-height: 2.4em;
+  color: #d7d6e9;
+  line-height: 1.2;
+}
+
+.refinery-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
 }
 
 .inventory-list-centered {

@@ -5,7 +5,6 @@ export class TitleScene extends Phaser.Scene {
   static readonly KEY = 'title-scene';
 
   private stars: Phaser.GameObjects.Graphics | null = null;
-  private titleText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super(TitleScene.KEY);
@@ -15,14 +14,6 @@ export class TitleScene extends Phaser.Scene {
     const app = this.getApp();
     this.cameras.main.setBackgroundColor('#0b1320');
     this.stars = this.add.graphics();
-    this.titleText = this.add.text(0, 0, 'DIGGR', {
-      fontFamily: '"Courier New"',
-      fontSize: '52px',
-      color: '#ffde7b',
-      stroke: '#000000',
-      strokeThickness: 8,
-    });
-    this.titleText.setOrigin(0.5, 0.5);
     app.sceneDidRender();
   }
 
@@ -44,8 +35,6 @@ export class TitleScene extends Phaser.Scene {
     this.stars?.fillRect(0, height * 0.76, width, height * 0.24);
     this.stars?.fillStyle(0x6c4321, 1);
     this.stars?.fillRect(0, height * 0.8, width, height * 0.2);
-
-    this.titleText?.setPosition(width / 2, height * 0.28);
   }
 
   private getApp(): DiggrApp {

@@ -110,6 +110,18 @@ describe('app shell', () => {
     expect(app.getState()?.modal.type).toBe('none');
   });
 
+  test('testing mode boots a boosted sandbox state', () => {
+    const { app } = createMountedTestApp();
+    mountedApps.push(app);
+
+    app.startTestingGame();
+
+    expect(app.getState()?.meta.testingMode).toBe(true);
+    expect(app.getState()?.player.maxHealth).toBe(10000);
+    expect(app.getState()?.player.maxFuel).toBe(10000);
+    expect(app.getState()?.player.cash).toBeGreaterThanOrEqual(999999);
+  });
+
   test('q hotkey still toggles inventory when bubbling listeners stop propagation', () => {
     const { app } = createMountedTestApp();
     mountedApps.push(app);
@@ -157,6 +169,51 @@ describe('app shell', () => {
 
     expect(overlayRoot.querySelector('.modal-scrim')).toBe(initialModal);
     expect(app.getState()?.modal.type).toBe('inventory');
+  });
+
+  test('save modal persists the game and returns to gameplay', () => {
+    const { app, overlayRoot } = createMountedTestApp();
+    mountedApps.push(app);
+
+    app.startNewGame();
+    app.getState()!.player.cash = 432;
+    app.openShop('save');
+
+    const saveButton = Array.from(overlayRoot.querySelectorAll('button')).find((button) => button.textContent === 'Save');
+    saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    const persisted = localStorage.getItem('diggr-save-slot') ?? '';
+    expect(persisted).toContain('"cash":432');
+    expect(persisted).toContain('"mode":"gameplay"');
+    expect(persisted).toContain('"modal":{"type":"none"}');
+    expect(app.getState()?.mode).toBe('gameplay');
+    expect(app.getState()?.modal.type).toBe('none');
+    expect(app.getState()?.toast).toBe('Game saved.');
+  });
+
+  test('loading a save created at the save balloon starts on the ground without reopening the modal', () => {
+    const { app } = createMountedTestApp();
+    mountedApps.push(app);
+
+    app.startNewGame();
+    app.openShop('save');
+    app.getState()!.player.position = { x: 6.35, y: -2.4 };
+    localStorage.setItem(
+      'diggr-save-slot',
+      JSON.stringify({
+        version: 1,
+        savedAt: new Date().toISOString(),
+        state: app.getState(),
+      }),
+    );
+
+    app.showTitle();
+    app.loadSavedGame();
+
+    expect(app.getState()?.mode).toBe('gameplay');
+    expect(app.getState()?.modal.type).toBe('none');
+    expect(app.getState()?.player.position.y).toBeCloseTo(-0.44, 4);
+    expect(app.getState()?.player.position.x).toBeCloseTo(6.35, 4);
   });
 
   test('restart button transitions to a fresh gameplay state from game over', () => {

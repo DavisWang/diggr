@@ -46,7 +46,7 @@ export type ConsumableType =
   | 'matter_transporter'
   | 'quantum_fissurizer';
 
-export type ShopType = 'upgrades' | 'consumables' | 'refinery' | 'service';
+export type ShopType = 'upgrades' | 'consumables' | 'refinery' | 'service' | 'save';
 
 export type ScreenType = 'title' | 'gameplay';
 
@@ -58,6 +58,7 @@ export type ModalType =
   | 'consumables'
   | 'refinery'
   | 'service'
+  | 'save'
   | 'game_over';
 
 export type Direction = 'left' | 'right' | 'down';
@@ -182,6 +183,7 @@ export interface GameMeta {
   createdAt: string;
   updatedAt: string;
   hasVisitedUnderground: boolean;
+  testingMode: boolean;
 }
 
 export interface GameState {

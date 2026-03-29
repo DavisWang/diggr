@@ -1,4 +1,19 @@
-import { CONSUMABLE_DEFS, UPGRADE_TYPES } from '../config/content';
+import {
+  CONSUMABLE_ICON_FRAME_SIZE,
+  CONSUMABLE_ICON_SHEET_COLUMNS,
+  CONSUMABLE_ICON_SHEET_ROWS,
+  CONSUMABLE_DEFS,
+  REFINERY_ICON_FRAME_SIZE,
+  REFINERY_ICON_SHEET_COLUMNS,
+  REFINERY_ICON_SHEET_ROWS,
+  UPGRADE_ICON_FRAME_SIZE,
+  UPGRADE_ICON_SHEET_COLUMNS,
+  UPGRADE_ICON_SHEET_ROWS,
+  UPGRADE_TYPES,
+  getConsumableSpriteFrame,
+  getRefinerySpriteFrame,
+  getUpgradeSpriteFrame,
+} from '../config/content';
 import {
   computeServiceCost,
   getCargoEntries,
@@ -12,12 +27,18 @@ import type {
   ConsumableType,
   EquipmentTier,
   GameState,
+  SellableMaterial,
   ShopType,
   UpgradeType,
 } from '../types';
 
+const UPGRADE_ICON_SHEET_URL = new URL('../assets/sprites/upgrade-shop-icons.png', import.meta.url).href;
+const CONSUMABLE_ICON_SHEET_URL = new URL('../assets/sprites/consumable-shop-icons.png', import.meta.url).href;
+const REFINERY_ICON_SHEET_URL = new URL('../assets/sprites/refinery-shop-icons.png', import.meta.url).href;
+
 interface TitleHandlers {
   onNewGame: () => void;
+  onTestingGame: () => void;
   onLoadGame: () => void;
   onToggleHowTo: () => void;
 }
@@ -31,6 +52,7 @@ interface GameplayHandlers {
   onBuySelectedConsumable: () => void;
   onSellAllCargo: () => void;
   onRepairAndRefuel: () => void;
+  onSaveGame: () => void;
   onRestart: () => void;
   onBackToTitle: () => void;
 }
@@ -56,6 +78,7 @@ export function renderTitleScreen(
   const actions = div('title-actions');
   actions.append(
     button('New Game', handlers.onNewGame),
+    button('Testing Mode', handlers.onTestingGame),
     button('Load Game', handlers.onLoadGame, { disabled: !options.hasSave }),
     button(options.showHowTo ? 'Hide How To Play' : 'How To Play', handlers.onToggleHowTo),
   );
@@ -95,6 +118,7 @@ function renderHud(state: GameState): HTMLElement {
   leftPanel.append(
     statLine('Cash', `$${state.player.cash.toFixed(0)}`),
     statLine('Total Earnings', `$${state.player.totalEarnings.toFixed(0)}`),
+    statLine('Mode', state.meta.testingMode ? 'Testing' : 'Standard'),
     statLine('Zone', state.player.lastSurfaceZone ?? (depth > 0 ? 'Underground' : 'Surface')),
   );
 
@@ -137,6 +161,9 @@ function renderModalForState(state: GameState, handlers: GameplayHandlers): HTML
       break;
     case 'service':
       card.append(renderServiceModal(state, handlers));
+      break;
+    case 'save':
+      card.append(renderSaveModal(handlers));
       break;
     case 'game_over':
       card.append(renderGameOverModal(state, handlers));
@@ -182,7 +209,7 @@ function renderUpgradeModal(state: GameState, handlers: GameplayHandlers): HTMLE
     );
   }
 
-  const choicesWrap = div('choice-grid');
+  const choicesWrap = div('choice-grid upgrade-choice-grid');
   const category = state.modal.selectedCategory ?? 'hull';
   const choices = getUpgradeChoices(state, category);
   if (choices.length === 0) {
@@ -190,11 +217,7 @@ function renderUpgradeModal(state: GameState, handlers: GameplayHandlers): HTMLE
   } else {
     for (const choice of choices) {
       const selected = state.modal.selectedId === `${category}:${choice.tier}`;
-      choicesWrap.append(
-        button(`${choice.label}  $${choice.price}`, () => handlers.onSelectUpgradeTier(category, choice.tier), {
-          className: selected ? 'choice-button is-selected' : 'choice-button',
-        }),
-      );
+      choicesWrap.append(createUpgradeIconButton(category, choice.tier, choice.label, selected, () => handlers.onSelectUpgradeTier(category, choice.tier)));
     }
   }
 
@@ -228,19 +251,49 @@ function renderUpgradeDetail(state: GameState, handlers: GameplayHandlers): HTML
   return detail;
 }
 
+function createUpgradeIconButton(
+  category: UpgradeType,
+  tier: EquipmentTier,
+  label: string,
+  selected: boolean,
+  onClick: () => void,
+): HTMLButtonElement {
+  const frame = getUpgradeSpriteFrame(category, tier);
+  const buttonNode = document.createElement('button');
+  buttonNode.type = 'button';
+  buttonNode.className = `diggr-button choice-button upgrade-icon-button${selected ? ' is-selected' : ''}`;
+  buttonNode.setAttribute('aria-label', label);
+  buttonNode.dataset.upgradeChoice = 'true';
+  buttonNode.dataset.upgradeType = category;
+  buttonNode.dataset.upgradeTier = tier;
+  buttonNode.dataset.spriteFrame = String(frame);
+  buttonNode.addEventListener('click', onClick);
+
+  const sprite = document.createElement('span');
+  sprite.className = 'upgrade-icon-sprite';
+  const frameColumn = frame % UPGRADE_ICON_SHEET_COLUMNS;
+  const frameRow = Math.floor(frame / UPGRADE_ICON_SHEET_COLUMNS);
+  const displaySize = 56;
+  sprite.style.backgroundImage = `url(${UPGRADE_ICON_SHEET_URL})`;
+  sprite.style.backgroundSize = `${UPGRADE_ICON_SHEET_COLUMNS * displaySize}px ${UPGRADE_ICON_SHEET_ROWS * displaySize}px`;
+  sprite.style.backgroundPosition = `${-frameColumn * displaySize}px ${-frameRow * displaySize}px`;
+  sprite.style.width = `${displaySize}px`;
+  sprite.style.height = `${displaySize}px`;
+  sprite.style.setProperty('--upgrade-frame-size', `${UPGRADE_ICON_FRAME_SIZE}px`);
+  buttonNode.append(sprite);
+
+  return buttonNode;
+}
+
 function renderConsumableModal(state: GameState, handlers: GameplayHandlers): HTMLElement {
   const body = div('modal-body');
-  const layout = div('shop-layout');
+  const layout = div('shop-layout shop-layout--two-column');
   const inventoryGrid = div('inventory-grid');
 
   for (const [type, def] of Object.entries(CONSUMABLE_DEFS) as [ConsumableType, typeof CONSUMABLE_DEFS[ConsumableType]][]) {
     const selected = state.modal.selectedId === type;
     const owned = state.player.inventory[type];
-    inventoryGrid.append(
-      button(`${def.label} (${def.hotkey}) x${owned}`, () => handlers.onSelectConsumable(type), {
-        className: selected ? 'choice-button is-selected' : 'choice-button',
-      }),
-    );
+    inventoryGrid.append(createConsumableIconButton(type, def.label, def.hotkey, owned, selected, () => handlers.onSelectConsumable(type)));
   }
 
   const selectedType = (state.modal.selectedId as ConsumableType | undefined) ?? 'repair_nanobot';
@@ -257,44 +310,109 @@ function renderConsumableModal(state: GameState, handlers: GameplayHandlers): HT
     }),
   );
 
-  const quickRef = div('panel detail-panel');
-  quickRef.append(element('h3', 'detail-title', 'Quick Reference'));
-  for (const [type, count] of Object.entries(state.player.inventory)) {
-    quickRef.append(element('div', 'metric', `${CONSUMABLE_DEFS[type as ConsumableType].hotkey}  ${CONSUMABLE_DEFS[type as ConsumableType].label} x${count}`));
-  }
-
-  layout.append(inventoryGrid, detail, quickRef);
+  layout.append(inventoryGrid, detail);
   body.append(layout);
   return body;
+}
+
+function createConsumableIconButton(
+  type: ConsumableType,
+  label: string,
+  hotkey: string,
+  owned: number,
+  selected: boolean,
+  onClick: () => void,
+): HTMLButtonElement {
+  const frame = getConsumableSpriteFrame(type);
+  const buttonNode = document.createElement('button');
+  buttonNode.type = 'button';
+  buttonNode.className = `diggr-button choice-button consumable-icon-button${selected ? ' is-selected' : ''}`;
+  buttonNode.setAttribute('aria-label', `${label} (${hotkey}) x${owned}`);
+  buttonNode.dataset.consumableChoice = 'true';
+  buttonNode.dataset.consumableType = type;
+  buttonNode.dataset.spriteFrame = String(frame);
+  buttonNode.addEventListener('click', onClick);
+
+  const hotkeyBadge = element('span', 'choice-badge choice-badge--hotkey', hotkey);
+  const ownedBadge = element('span', 'choice-badge choice-badge--owned', `x${owned}`);
+
+  const sprite = document.createElement('span');
+  sprite.className = 'consumable-icon-sprite';
+  const frameColumn = frame % CONSUMABLE_ICON_SHEET_COLUMNS;
+  const frameRow = Math.floor(frame / CONSUMABLE_ICON_SHEET_COLUMNS);
+  const displaySize = 52;
+  sprite.style.backgroundImage = `url(${CONSUMABLE_ICON_SHEET_URL})`;
+  sprite.style.backgroundSize = `${CONSUMABLE_ICON_SHEET_COLUMNS * displaySize}px ${CONSUMABLE_ICON_SHEET_ROWS * displaySize}px`;
+  sprite.style.backgroundPosition = `${-frameColumn * displaySize}px ${-frameRow * displaySize}px`;
+  sprite.style.width = `${displaySize}px`;
+  sprite.style.height = `${displaySize}px`;
+  sprite.style.setProperty('--consumable-frame-size', `${CONSUMABLE_ICON_FRAME_SIZE}px`);
+
+  buttonNode.append(hotkeyBadge, sprite, ownedBadge);
+  return buttonNode;
 }
 
 function renderRefineryModal(state: GameState, handlers: GameplayHandlers): HTMLElement {
   const body = div('modal-body');
   const entries = getCargoEntries(state);
   const total = entries.reduce((sum, entry) => sum + entry.subtotal, 0);
-  const layout = div('shop-layout');
-  const list = div('sell-list');
+  const layout = div('shop-layout shop-layout--two-column');
+  const list = div('refinery-grid');
 
   if (entries.length === 0) {
     list.append(element('div', 'metric', 'No ore or treasure in cargo.'));
   } else {
     for (const entry of entries) {
-      list.append(element('div', 'metric', `${entry.label} x${entry.amount} ...... $${entry.subtotal}`));
+      list.append(createRefineryEntryCard(entry.type, entry.label, entry.amount, entry.subtotal));
     }
-    list.append(element('div', 'metric', `Grand Total ...... $${total}`));
   }
 
   const detail = div('panel detail-panel');
   detail.append(
     element('h3', 'detail-title', 'Sell All Cargo'),
     element('p', 'detail-copy', 'Refine and sell every ore and treasure stack in the hold in one action.'),
-    statLine('Total', `$${total}`),
+    statLine('Grand Total', `$${total}`),
     button('Sell All', handlers.onSellAllCargo, { disabled: total <= 0 }),
   );
 
   layout.append(list, detail);
   body.append(layout);
   return body;
+}
+
+function createRefineryEntryCard(
+  type: SellableMaterial,
+  label: string,
+  amount: number,
+  subtotal: number,
+): HTMLElement {
+  const frame = getRefinerySpriteFrame(type);
+  const card = div('panel refinery-entry-card');
+  card.dataset.refineryEntry = 'true';
+  card.dataset.refineryType = type;
+  card.dataset.spriteFrame = String(frame);
+
+  const sprite = document.createElement('span');
+  sprite.className = 'refinery-icon-sprite';
+  const frameColumn = frame % REFINERY_ICON_SHEET_COLUMNS;
+  const frameRow = Math.floor(frame / REFINERY_ICON_SHEET_COLUMNS);
+  const displaySize = 48;
+  sprite.style.backgroundImage = `url(${REFINERY_ICON_SHEET_URL})`;
+  sprite.style.backgroundSize = `${REFINERY_ICON_SHEET_COLUMNS * displaySize}px ${REFINERY_ICON_SHEET_ROWS * displaySize}px`;
+  sprite.style.backgroundPosition = `${-frameColumn * displaySize}px ${-frameRow * displaySize}px`;
+  sprite.style.width = `${displaySize}px`;
+  sprite.style.height = `${displaySize}px`;
+  sprite.style.setProperty('--refinery-frame-size', `${REFINERY_ICON_FRAME_SIZE}px`);
+
+  const labelNode = element('div', 'refinery-card-label', label);
+  const badges = div('refinery-card-badges');
+  badges.append(
+    element('span', 'choice-badge choice-badge--owned', `x${amount}`),
+    element('span', 'choice-badge choice-badge--value', `$${subtotal}`),
+  );
+
+  card.append(sprite, labelNode, badges);
+  return card;
 }
 
 function renderServiceModal(state: GameState, handlers: GameplayHandlers): HTMLElement {
@@ -308,6 +426,18 @@ function renderServiceModal(state: GameState, handlers: GameplayHandlers): HTMLE
     button('Repair And Refuel', handlers.onRepairAndRefuel, {
       disabled: cost <= 0 || state.player.cash < cost,
     }),
+  );
+  body.append(panel);
+  return body;
+}
+
+function renderSaveModal(handlers: GameplayHandlers): HTMLElement {
+  const body = div('modal-body');
+  const panel = div('panel detail-panel');
+  panel.append(
+    element('h3', 'detail-title', 'Save Progress'),
+    element('p', 'detail-copy', 'Write the current run to the local save slot without leaving the mine.'),
+    button('Save', handlers.onSaveGame),
   );
   body.append(panel);
   return body;
@@ -363,6 +493,8 @@ function getModalTitle(type: ShopType | GameState['modal']['type']): string {
       return 'Ore Refinery';
     case 'service':
       return 'Repair + Refuel';
+    case 'save':
+      return 'Save Station';
     case 'game_over':
       return 'Game Over';
     default:

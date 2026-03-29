@@ -14,6 +14,7 @@ import {
   getDrillTerrainFrame,
   getPlayerRenderY,
   getShopRenderLayout,
+  getSurfaceGroundFrame,
   getTerrainFrame,
   resolveDiggerRenderState,
   type DiggerFacing,
@@ -36,6 +37,7 @@ export class GameScene extends Phaser.Scene {
   private playerSprite: Phaser.GameObjects.Sprite | null = null;
   private shopSprites: Phaser.GameObjects.Image[] = [];
   private terrainSprites: Phaser.GameObjects.Image[] = [];
+  private surfaceSprites: Phaser.GameObjects.Image[] = [];
   private shopLabels: Phaser.GameObjects.Text[] = [];
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private consumableKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
@@ -183,10 +185,14 @@ export class GameScene extends Phaser.Scene {
 
     graphics.fillStyle(0x13223b, 1);
     graphics.fillRect(0, -SURFACE_SKY_ROWS * tileSize, WORLD_WIDTH * tileSize, SURFACE_SKY_ROWS * tileSize);
-    graphics.fillStyle(0xe1904c, 1);
-    graphics.fillRect(0, -0.5 * tileSize, WORLD_WIDTH * tileSize, 0.5 * tileSize);
-    graphics.fillStyle(0x6c4321, 1);
-    graphics.fillRect(0, 0, WORLD_WIDTH * tileSize, Math.max(2, tileSize * 0.18));
+    this.ensureSurfacePool(WORLD_WIDTH);
+    for (let x = 0; x < WORLD_WIDTH; x += 1) {
+      const sprite = this.surfaceSprites[x];
+      sprite.setFrame(getSurfaceGroundFrame(x));
+      sprite.setDisplaySize(tileSize, tileSize);
+      sprite.setPosition(x * tileSize, -0.72 * tileSize);
+      sprite.setVisible(true);
+    }
 
     this.shopLabels.forEach((label, index) => {
       const pad = SURFACE_PADS[index];
@@ -314,6 +320,16 @@ export class GameScene extends Phaser.Scene {
       sprite.setOrigin(0, 0);
       sprite.setVisible(false);
       this.terrainSprites.push(sprite);
+    }
+  }
+
+  private ensureSurfacePool(requiredCount: number): void {
+    while (this.surfaceSprites.length < requiredCount) {
+      const sprite = this.add.image(0, 0, TERRAIN_TEXTURE_KEY, 14);
+      sprite.setDepth(1);
+      sprite.setOrigin(0, 0);
+      sprite.setVisible(false);
+      this.surfaceSprites.push(sprite);
     }
   }
 

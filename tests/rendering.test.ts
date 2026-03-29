@@ -6,6 +6,7 @@ import {
   getDrillTerrainFrame,
   getPlayerRenderY,
   getShopRenderLayout,
+  getSurfaceGroundFrame,
   getTerrainFrame,
   resolveDiggerRenderState,
 } from '../src/phaser/rendering';
@@ -95,6 +96,13 @@ describe('sprite rendering helpers', () => {
     expect(large.labelY).toBeCloseTo(small.labelY * 2, 5);
   });
 
+  test('surface ground art cycles across the decorative cap frames', () => {
+    expect(getSurfaceGroundFrame(0)).toBe(14);
+    expect(getSurfaceGroundFrame(1)).toBe(15);
+    expect(getSurfaceGroundFrame(2)).toBe(16);
+    expect(getSurfaceGroundFrame(3)).toBe(14);
+  });
+
   test('drill material classification maps soft ore and lava correctly', () => {
     expect(getDrillMaterialVisualCategory('dirt')).toBe('soft');
     expect(getDrillMaterialVisualCategory('silverium')).toBe('ore');
@@ -171,14 +179,14 @@ describe('sprite rendering helpers', () => {
       { x: 7, row: 7, progress: 0.75, direction: 'right', blockType: 'dirt' },
       playerPosition,
     );
-    const downStartOffset = getDrillRigOffset(
-      { x: 6, row: 8, progress: 0, direction: 'down', blockType: 'dirt' },
-      playerPosition,
-    );
-    const downLateOffset = getDrillRigOffset(
-      { x: 6, row: 8, progress: 0.75, direction: 'down', blockType: 'dirt' },
-      playerPosition,
-    );
+    const downStartOffset = getDrillRigOffset({ x: 6, row: 8, progress: 0, direction: 'down', blockType: 'dirt' }, {
+      x: 6.2,
+      y: 7.5,
+    });
+    const downLateOffset = getDrillRigOffset({ x: 6, row: 8, progress: 0.75, direction: 'down', blockType: 'dirt' }, {
+      x: 6.2,
+      y: 7.5,
+    });
 
     expect(leftStartOffset.xTiles).toBeCloseTo(-0.14, 4);
     expect(leftLateOffset.xTiles).toBeCloseTo(-0.89, 4);
@@ -192,7 +200,9 @@ describe('sprite rendering helpers', () => {
 
     expect(downStartOffset.xTiles).toBe(0);
     expect(downStartOffset.yTiles).toBeCloseTo(0.06, 4);
+    expect(downLateOffset.xTiles).toBeCloseTo(0.225, 4);
     expect(downLateOffset.yTiles).toBeCloseTo(0.81, 4);
+    expect(downLateOffset.xTiles).toBeGreaterThan(downStartOffset.xTiles);
     expect(downLateOffset.yTiles).toBeGreaterThan(downStartOffset.yTiles);
   });
 

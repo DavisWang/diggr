@@ -1,4 +1,4 @@
-import { STORAGE_KEY } from '../src/config/content';
+import { BLOCK_DEFS, PHYSICS, STORAGE_KEY, UPGRADE_TIER_DEFS } from '../src/config/content';
 import {
   attemptDig,
   buyConsumable,
@@ -34,6 +34,22 @@ describe('game rules', () => {
     expect(getCell(state.world, 5, 0).type).toBe('dirt');
   });
 
+  test('testing mode boosts health fuel and spending freedom', () => {
+    const state = createNewGame(1000, { testingMode: true });
+
+    expect(state.meta.testingMode).toBe(true);
+    expect(state.player.maxHealth).toBe(10000);
+    expect(state.player.maxFuel).toBe(10000);
+    expect(state.player.cash).toBeGreaterThanOrEqual(999999);
+
+    const startingCash = state.player.cash;
+    const message = buyConsumable(state, 'large_tnt');
+
+    expect(message).toContain('Large TNT');
+    expect(state.player.inventory.large_tnt).toBe(1);
+    expect(state.player.cash).toBe(startingCash);
+  });
+
   test('blocks digging downward into the first surface layer', () => {
     const state = createNewGame(1001);
     state.player.position = { x: 6.5, y: -0.2 };
@@ -45,15 +61,33 @@ describe('game rules', () => {
     expect(getCell(state.world, 6, 0).type).toBe('dirt');
   });
 
-  test('requires a better drill for higher tier ore', () => {
+  test('requires a better drill when the ore is more than one tier above the current drill', () => {
     const state = createNewGame(1002);
     state.player.position = { x: 6.5, y: 2.2 };
-    setCell(state.world, 6, 2, 'silverium');
+    setCell(state.world, 6, 2, 'goldium_ore');
 
     const result = attemptDig(state, 'left', 'bronzium', true);
 
     expect(result).toContain('better drill');
-    expect(getCell(state.world, 6, 2).type).toBe('silverium');
+    expect(getCell(state.world, 6, 2).type).toBe('goldium_ore');
+  });
+
+  test('one-tier-under drills can mine the next ore tier with slower speed and higher fuel burn', () => {
+    const state = createNewGame(1002);
+    state.player.position = { x: 6.5, y: 2.2 };
+    setCell(state.world, 6, 2, 'silverium');
+    const startingFuel = state.player.fuel;
+
+    const result = attemptDig(state, 'left', 'bronzium', true);
+
+    expect(result).toContain('Overclock-drilling Silverium');
+    expect(state.player.activeDrill).not.toBeNull();
+    expect(state.player.activeDrill!.totalSeconds).toBeGreaterThan(calculateDrillDurationSeconds('silverium', 'silverium'));
+    expect(startingFuel - state.player.fuel).toBeGreaterThan(PHYSICS.digFuelBase + BLOCK_DEFS.silverium.value / 42);
+
+    advanceDrill(state);
+
+    expect(getCell(state.world, 6, 2).type).toBe('air');
   });
 
   test('starting a valid drill keeps the block intact until completion', () => {
@@ -86,8 +120,22 @@ describe('game rules', () => {
     advanceDrill(state);
 
     expect(state.player.position.x).toBeCloseTo(5.36, 4);
+    expect(state.player.position.y).toBeCloseTo(2.2, 4);
     expect(state.player.velocity.x).toBe(0);
     expect(getCell(state.world, 5, 2).type).toBe('air');
+  });
+
+  test('downward drill completion recenters the digger into the opened tile from an edge-biased start', () => {
+    const state = createNewGame(1003);
+    state.player.position = { x: 6.18, y: 1.7 };
+    setCell(state.world, 6, 2, 'tinnite');
+
+    attemptDig(state, 'down', state.player.equipment.drill, true);
+    advanceDrill(state);
+
+    expect(state.player.position.x).toBeCloseTo(6.5, 4);
+    expect(state.player.position.y).toBeCloseTo(2.56, 4);
+    expect(getCell(state.world, 6, 2).type).toBe('air');
   });
 
   test('applies lava damage and clears the mined block after the timed drill completes', () => {
@@ -124,6 +172,9 @@ describe('game rules', () => {
     );
     expect(calculateDrillDurationSeconds('goldium_ore', 'goldium')).toBeLessThan(
       calculateDrillDurationSeconds('goldium_ore', 'bronzium'),
+    );
+    expect(calculateDrillDurationSeconds('silverium', 'bronzium', 'overclocked')).toBeGreaterThan(
+      calculateDrillDurationSeconds('silverium', 'silverium'),
     );
   });
 
@@ -294,6 +345,31 @@ describe('game rules', () => {
     expect(calculateFallDamage(100, 45)).toBeCloseTo(80, 5);
   });
 
+  test('fall damage is reduced or negated when impact speed is softened before landing', () => {
+    expect(calculateFallDamage(100, 30, 3)).toBe(0);
+    expect(calculateFallDamage(100, 30, 5)).toBeLessThan(30);
+    expect(calculateFallDamage(100, 30, 9.5)).toBeCloseTo(80, 5);
+  });
+
+  test('landing damage only applies on the real airborne touchdown, not on later grounded ticks', () => {
+    const state = createNewGame(1018, { testingMode: true });
+    state.player.position = { x: 6.5, y: 20.58 };
+    state.player.airborne = true;
+    state.player.airbornePeakY = 0.5;
+    state.player.velocity = { x: 0, y: 9.5 };
+    setCell(state.world, 6, 21, 'dirt');
+    const startingHealth = state.player.health;
+
+    tickGame(state, { left: false, right: false, up: true, down: false, consume: [] }, 0.1);
+    const healthAfterLanding = state.player.health;
+
+    expect(healthAfterLanding).toBeGreaterThan(startingHealth - 8000);
+
+    tickGame(state, { left: false, right: false, up: false, down: false, consume: [] }, 0.1);
+
+    expect(state.player.health).toBe(healthAfterLanding);
+  });
+
   test('blocked upward thrust does not spend fuel', () => {
     const state = createNewGame(1015);
     state.player.position = { x: 6.5, y: 5.42 };
@@ -367,6 +443,41 @@ describe('game rules', () => {
     expect(repairAndRefuel(state)).toContain('serviced');
     expect(state.player.health).toBe(state.player.maxHealth);
     expect(state.player.fuel).toBe(state.player.maxFuel);
+  });
+
+  test('late-game upgrade prices match the moderate rebalance table', () => {
+    expect(UPGRADE_TIER_DEFS.drill.adamantium.price).toBe(1350);
+    expect(UPGRADE_TIER_DEFS.drill.runite.price).toBe(2000);
+    expect(UPGRADE_TIER_DEFS.hull.adamantium.price).toBe(1100);
+    expect(UPGRADE_TIER_DEFS.hull.runite.price).toBe(1600);
+    expect(UPGRADE_TIER_DEFS.cargo_hold.adamantium.price).toBe(920);
+    expect(UPGRADE_TIER_DEFS.cargo_hold.runite.price).toBe(1350);
+    expect(UPGRADE_TIER_DEFS.thrusters.adamantium.price).toBe(1100);
+    expect(UPGRADE_TIER_DEFS.thrusters.runite.price).toBe(1600);
+    expect(UPGRADE_TIER_DEFS.fuel_tank.adamantium.price).toBe(930);
+    expect(UPGRADE_TIER_DEFS.fuel_tank.runite.price).toBe(1380);
+    expect(UPGRADE_TIER_DEFS.radiator.adamantium.price).toBe(1100);
+    expect(UPGRADE_TIER_DEFS.radiator.runite.price).toBe(1600);
+  });
+
+  test('late-game upgrade purchases respect the new higher price thresholds', () => {
+    const state = createNewGame(1019);
+    state.player.cash = 939;
+
+    expect(buyUpgrade(state, 'hull', 'adamantium')).toContain('Not enough cash');
+    expect(state.player.equipment.hull).toBe('bronzium');
+
+    state.player.cash = 1100;
+    expect(buyUpgrade(state, 'hull', 'adamantium')).toContain('installed');
+    expect(state.player.equipment.hull).toBe('adamantium');
+
+    state.player.cash = 1599;
+    expect(buyUpgrade(state, 'thrusters', 'runite')).toContain('Not enough cash');
+    expect(state.player.equipment.thrusters).toBe('bronzium');
+
+    state.player.cash = 1600;
+    expect(buyUpgrade(state, 'thrusters', 'runite')).toContain('installed');
+    expect(state.player.equipment.thrusters).toBe('runite');
   });
 
   test('save and load restore the current game state including an in-progress drill', () => {
