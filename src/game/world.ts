@@ -15,6 +15,7 @@ export type DrillMiningMode = 'native' | 'overclocked' | 'blocked';
 export function createWorld(seed: number): WorldState {
   return {
     seed,
+    layoutSeed: seed,
     width: WORLD_WIDTH,
     chunkSize: WORLD_CHUNK_SIZE,
     chunks: {},
@@ -157,9 +158,13 @@ export function regenerateWorldBelowRow(world: WorldState, startRow: number): vo
   }
 }
 
+export function rerollWorldLayout(world: WorldState, salt: number): void {
+  world.layoutSeed = hashSeed(world.layoutSeed, 17_021 + salt);
+}
+
 function buildChunk(world: WorldState, chunkIndex: number): WorldChunk {
   const startRow = chunkIndex * world.chunkSize;
-  const chunkSeed = hashSeed(world.seed, chunkIndex + 1013);
+  const chunkSeed = hashSeed(world.layoutSeed, chunkIndex + 1013);
   const random = mulberry32(chunkSeed);
   const rows: Record<string, BlockCell[]> = {};
 

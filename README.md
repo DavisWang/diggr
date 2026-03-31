@@ -11,7 +11,8 @@ Diggr is a desktop-first mining game with:
 - procedural retro lo-fi background music with synthesized gameplay sound FX
 - persistent corner audio toggle that mutes both music and sound FX
 - sprite-backed consumable-use animations for repair, fuel, explosives, and teleport tools
-- rare post-shop earthquakes that shake the camera, lock controls briefly, and reshuffle unseen mine rows below the viewport
+- rare post-shop earthquakes that shake the camera, lock controls briefly, and fully regenerate the underground with a new layout
+- upgrade shop opens on drills by default so the primary progression path is surfaced first
 - testing mode support, including a manual `W` hotkey for earthquake validation
 - sprite-backed title and How To Play presentation that reuse the live game art language
 - full-cargo mining that still destroys blocks and discards ore if the hold is already full

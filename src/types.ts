@@ -152,6 +152,7 @@ export interface WorldChunk {
 
 export interface WorldState {
   seed: number;
+  layoutSeed: number;
   width: number;
   chunkSize: number;
   chunks: Record<string, WorldChunk>;

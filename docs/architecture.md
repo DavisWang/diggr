@@ -26,8 +26,9 @@
 - World generation is chunked and seeded so saves can restore the same mine layout without precomputing the full depth.
 - The digger uses custom collision and movement rules over a tile world instead of leaning on Phaser physics for destructible terrain behavior.
 - Shops are surface pads that open modal overlays when the rig settles onto them; gameplay pauses while a modal is open.
+- The upgrade shop defaults to the drill category on open so the main progression gate is shown first instead of burying it behind a manual category switch.
 - Hidden lava is stored as its own block type but rendered as dirt until revealed through interaction.
-- Shop closing can rarely trigger an earthquake event that locks controls briefly and rebuilds only the unseen mine rows below the current browser viewport.
+- Shop closing can rarely trigger an earthquake event that locks controls briefly and regenerates the full underground with a new layout.
 
 ## Timed drilling model
 
@@ -57,10 +58,10 @@
 ## Earthquake event model
 
 - Closing a dismissible shop modal increments a deterministic close counter on gameplay state.
-- A seeded rare-roll check can start `activeEarthquake` after that close, which keeps the event save-safe and testable instead of scene-random.
+- A seeded `1%` rare-roll check can start `activeEarthquake` after that close, which keeps the event save-safe and testable instead of scene-random.
 - Testing mode can also start the same event path explicitly through a dedicated `W` control flag, so debug behavior exercises the real gameplay earthquake code instead of a separate mock path.
 - Earthquakes freeze player movement and control handling for their duration, while `GameScene` handles the camera shake once per quake id.
-- The world layer rebuilds only rows below `viewportBottomRow + 1`, preserving currently visible terrain and reusing the same seeded generation logic the mine already uses elsewhere.
+- Earthquakes reroll the world layout seed before rebuilding from row `1`, so previously dug tunnels are replaced by a genuinely new underground layout instead of the same deterministic block pattern.
 
 ## Tuning model
 

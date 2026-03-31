@@ -329,15 +329,22 @@ describe('game rules', () => {
     expect(state.blockedShopUntilExit).toBeNull();
   });
 
-  test('earthquake can trigger after a shop closes and regenerates only rows below the viewport', () => {
+  test('earthquake can trigger after a shop closes and regenerates the full underground with a new layout', () => {
     const state = createNewGame(1020);
     state.viewportBottomRow = 4;
-    const originalBelowViewport = getCell(state.world, 4, 8).type;
+    const originalLayoutSeed = state.world.layoutSeed;
+    const originalSnapshot = [
+      getCell(state.world, 1, 2).type,
+      getCell(state.world, 4, 8).type,
+      getCell(state.world, 6, 11).type,
+      getCell(state.world, 9, 18).type,
+      getCell(state.world, 11, 23).type,
+    ];
     setCell(state.world, 4, 8, 'air');
     setCell(state.world, 3, 3, 'air');
 
     let triggered = false;
-    for (let index = 0; index < 200; index += 1) {
+    for (let index = 0; index < 1000; index += 1) {
       openShop(state, 'service');
       closeModal(state);
       if (state.activeEarthquake) {
@@ -347,9 +354,18 @@ describe('game rules', () => {
     }
 
     expect(triggered).toBe(true);
-    expect(state.activeEarthquake?.regenerateFromRow).toBe(5);
-    expect(getCell(state.world, 4, 8).type).toBe(originalBelowViewport);
-    expect(getCell(state.world, 3, 3).type).toBe('air');
+    expect(state.activeEarthquake?.regenerateFromRow).toBe(1);
+    expect(state.world.layoutSeed).not.toBe(originalLayoutSeed);
+    expect(getCell(state.world, 4, 8).type).not.toBe('air');
+    expect(getCell(state.world, 3, 3).type).not.toBe('air');
+    const regeneratedSnapshot = [
+      getCell(state.world, 1, 2).type,
+      getCell(state.world, 4, 8).type,
+      getCell(state.world, 6, 11).type,
+      getCell(state.world, 9, 18).type,
+      getCell(state.world, 11, 23).type,
+    ];
+    expect(regeneratedSnapshot).not.toEqual(originalSnapshot);
   });
 
   test('earthquake freezes controls until the tremor window fully ends', () => {
@@ -392,7 +408,7 @@ describe('game rules', () => {
   test('testing mode can manually trigger an earthquake with the dedicated control flag', () => {
     const state = createNewGame(1022, { testingMode: true });
     state.viewportBottomRow = 4;
-    const originalBelowViewport = getCell(state.world, 5, 9).type;
+    const originalLayoutSeed = state.world.layoutSeed;
     setCell(state.world, 5, 9, 'air');
 
     tickGame(
@@ -402,9 +418,10 @@ describe('game rules', () => {
     );
 
     expect(state.activeEarthquake).not.toBeNull();
-    expect(state.activeEarthquake?.regenerateFromRow).toBe(5);
+    expect(state.activeEarthquake?.regenerateFromRow).toBe(1);
     expect(state.toast).toBe('Testing earthquake triggered.');
-    expect(getCell(state.world, 5, 9).type).toBe(originalBelowViewport);
+    expect(state.world.layoutSeed).not.toBe(originalLayoutSeed);
+    expect(getCell(state.world, 5, 9).type).not.toBe('air');
 
     const nonTestingState = createNewGame(1022);
     tickGame(
@@ -425,6 +442,16 @@ describe('game rules', () => {
     expect(result.openedShop).toBe('refinery');
     expect(state.mode).toBe('modal');
     expect(state.modal.type).toBe('refinery');
+  });
+
+  test('upgrade shop defaults to drills', () => {
+    const state = createNewGame(1013);
+
+    openShop(state, 'upgrades');
+
+    expect(state.modal.type).toBe('upgrades');
+    expect(state.modal.selectedCategory).toBe('drill');
+    expect(state.modal.selectedId).toBe('drill:silverium');
   });
 
   test('starting position does not immediately trigger a shop', () => {

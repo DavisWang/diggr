@@ -63,3 +63,6 @@
 - Generated art can drift from runtime content if new sprite frames are added in config but not in the source generators. Surface-pad count and sprite-frame mappings need to be treated as one change.
 - Title-screen polish needs browser-level visual verification, not just CSS/build success. Decorative logo shadows and multi-column button layouts can still collide even when the DOM structure looks correct in code.
 - If a title/footer element is meant to anchor to the bottom of a panel, use an explicit stretch layout with a spacer row instead of vertical centering on the whole column. Centered stacks will drift as sibling content changes height.
+- Promo tile captions should use measured centering, not hand-tuned x offsets. Decorative copy blocks drift visibly when the composition changes.
+- Pixel-word promo logos should be centered from glyph width, not eyeballed x offsets. Once the panel or pixel size changes, hand-tuned placement drifts immediately.
+- When a world-reset event is meant to create a fresh mine, reroll the layout seed before rebuilding. Replaying the same deterministic seed only restores the original blocks and fails the intended gameplay change.

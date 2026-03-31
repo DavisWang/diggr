@@ -3,7 +3,7 @@
 ## Header
 
 - Project: `Diggr`
-- Work order ID: `WO-2026-03-31-audio-pass`
+- Work order ID: `WO-2026-03-31-earthquake-retune`
 - Requester: `Davis Wang`
 - Owner: `Producer`
 - Project mode: `existing_project`
@@ -12,33 +12,31 @@
 
 ## Objective
 
-Add a targeted audio pass that introduces retro background music, gameplay sound FX, and an unobtrusive always-available audio toggle without changing the current gameplay loop. The implementation must stay inside a targeted refresh limited to request-affected audio/runtime/UI code, tests, and docs, and must honor the explicit proposal checkpoint before gameplay changes begin.
+Add a targeted earthquake-tuning pass that lowers shop-close quake frequency and makes each quake regenerate the underground as a genuinely new mine layout. The implementation must stay inside a targeted refresh limited to request-affected gameplay logic, world-generation state, tests, and docs.
 
 ## Requested Change
 
-Add a retro, low-fi, rhythmic background loop of roughly `30` seconds, add sound FX for the gameplay and economy actions called out in the request plus the missing high-signal events identified during intake, and place a small inconspicuous corner control somewhere in the overlay to toggle all audio on/off.
+Reduce shop-close earthquake chance to `1%` and change earthquake regeneration so it no longer rebuilds from the same underground layout seed.
 
 ## Existing Behavior To Preserve
 
-- Current gameplay state, economy, hazards, save/load, shops, and HUD behavior remain intact.
-- Existing Phaser scene and DOM overlay boundaries remain intact; audio should fit into the current app shell rather than forcing a new runtime architecture.
-- Current title/how-to presentation remains intact except for adding the small audio toggle where needed.
-- Keyboard controls, testing mode hooks, and deterministic gameplay rules remain intact.
+- Current gameplay state, economy, hazards, save/load, shops, audio, HUD, and control flow remain intact outside the quake path.
+- Existing testing-mode quake trigger remains intact.
+- Current title/how-to presentation remains intact aside from copy updates that describe the quake behavior correctly.
+- Deterministic save-safe behavior remains intact; regenerated underground state must persist across save/load.
 
 ## In Scope
 
-- Add an app-owned audio runtime with browser-safe unlock behavior and persisted on/off preference.
-- Add one retro background loop for title/gameplay use.
-- Add the approved sound-FX set for gameplay, economy, hazard, and utility events.
-- Add a small corner audio toggle that is available in the title and gameplay flows.
+- Lower `EARTHQUAKE_SHOP_CLOSE_CHANCE` to `1%`.
+- Change earthquake regeneration to reroll the underground layout instead of rebuilding from the same seed.
+- Keep the current quake duration, lockout, and testing-mode trigger path unless implementation evidence forces a narrower adjustment.
 - Add targeted regression coverage and refresh the minimal docs required for the landed behavior.
 
 ## Out Of Scope
 
-- Rebalancing ore, shops, hazards, earthquakes, or progression values.
-- A broader UI redesign beyond fitting the requested audio toggle into the current overlay shell.
-- Multiple soundtrack tracks, adaptive score systems, or separate music-vs-SFX controls unless the user expands scope.
-- External licensing/sourcing work for third-party audio libraries; assets should stay repo-owned and local.
+- Broader balance changes outside the requested earthquake tuning.
+- Reworking audio, UI, or unrelated world-generation systems.
+- New gameplay events, new hazards, or visual redesigns for the quake event.
 - Full artifact-chain regeneration beyond intake and work order.
 
 ## Inputs
@@ -46,36 +44,30 @@ Add a retro, low-fi, rhythmic background loop of roughly `30` seconds, add sound
 - [00-existing-project-intake.md](/Users/davis.wang/Documents/diggr/docs/project/00-existing-project-intake.md)
 - [README.md](/Users/davis.wang/Documents/diggr/README.md)
 - [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md)
-- [storage.ts](/Users/davis.wang/Documents/diggr/src/lib/storage.ts)
-- [main.ts](/Users/davis.wang/Documents/diggr/src/main.ts)
 - [logic.ts](/Users/davis.wang/Documents/diggr/src/game/logic.ts)
+- [world.ts](/Users/davis.wang/Documents/diggr/src/game/world.ts)
 - [content.ts](/Users/davis.wang/Documents/diggr/src/config/content.ts)
 - [GameScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/GameScene.ts)
-- [TitleScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/TitleScene.ts)
 - [renderers.ts](/Users/davis.wang/Documents/diggr/src/ui/renderers.ts)
-- [styles.css](/Users/davis.wang/Documents/diggr/src/styles.css)
-- [app.test.ts](/Users/davis.wang/Documents/diggr/tests/app.test.ts)
 - [logic.test.ts](/Users/davis.wang/Documents/diggr/tests/logic.test.ts)
-- [ui.test.ts](/Users/davis.wang/Documents/diggr/tests/ui.test.ts)
 
 ## Artifact Status Inputs
 
 | Artifact | Status | Notes |
 | --- | --- | --- |
-| `docs/project/00-existing-project-intake.md` | `refresh_required` | Retargeted to the audio/music loop. |
-| `docs/project/01-work-order.md` | `refresh_required` | Retargeted to the audio/music loop. |
-| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Should mention shipped audio behavior after landing. |
-| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Should capture the audio ownership boundary after landing. |
-| `Audio runtime and persistence` | `missing` | No audio manager or preference storage exists yet. |
-| `Cue event wiring and overlay toggle` | `missing` | No audio events or audio control surface exist yet. |
-| `Audio regression coverage` | `missing` | No tests cover the requested behavior. |
-| `Unrelated gameplay and deploy artifacts` | `out_of_scope` | Preserve unless an audio regression exposes a deeper issue. |
+| `docs/project/00-existing-project-intake.md` | `refresh_required` | Retargeted to the earthquake tuning loop. |
+| `docs/project/01-work-order.md` | `refresh_required` | Retargeted to the earthquake tuning loop. |
+| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Earthquake feature summary is stale. |
+| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Earthquake model section is stale. |
+| `Earthquake logic and world generation` | `refresh_required` | Chance and regeneration-seed behavior must change together. |
+| `Earthquake regression coverage` | `refresh_required` | Logic tests currently pin the old contract. |
+| `Unrelated audio/UI/deploy artifacts` | `out_of_scope` | Preserve unless the quake change exposes a regression. |
 
 ## Required Outputs
 
-- Approved proposal for the music/SFX inventory before gameplay implementation starts.
-- Retro background loop and approved SFX set landed in the local browser build.
-- Corner audio toggle landed in the title/gameplay overlay and preference persists across reloads.
+- Earthquakes trigger only `1%` of the time on shop close.
+- Earthquakes regenerate the underground from a genuinely new layout seed.
+- Testing-mode earthquake triggering still hits the same regenerated-world path.
 - Updated intake/work-order artifacts under `docs/project/`.
 - Targeted docs refresh in repo-level docs.
 - Passing `npm test` and `npm run build`.
@@ -86,22 +78,20 @@ Add a retro, low-fi, rhythmic background loop of roughly `30` seconds, add sound
 - Existing-project mode uses targeted refresh only.
 - Preserve existing working behavior unless the request explicitly changes it.
 - Browser-first validation and local runnable build remain required.
-- Respect browser autoplay constraints; audio must unlock through a real user gesture path.
-- Use one audio toggle for both music and SFX unless the user changes the request.
+- Keep quake behavior save-safe and deterministic once it has been triggered.
+- Avoid broad changes to world generation outside the earthquake regeneration path.
 
 ## Escalation Boundary
 
-The owner may choose the exact cue timing, sonic palette, volume balance, and repo-local implementation approach as long as the result fits the requested retro low-fi brief and preserves current behavior. User approval is required on the proposed cue inventory before gameplay/UI implementation begins, because the request explicitly asks for a proposal checkpoint first. Separate music/SFX controls, a materially different sonic direction, or external third-party asset sourcing would require escalation.
+The owner may choose the exact deterministic reroll strategy and test shape as long as the user-visible behavior matches `1%` chance plus a genuinely new underground layout. Any broader balance retune, audio change, or quake redesign beyond those constraints would require escalation.
 
 ## Done When
 
-- The user has approved the proposed music/SFX inventory.
-- Title and gameplay both expose an inconspicuous audio toggle.
-- The approved music loop and SFX cues play on the intended state transitions without changing gameplay behavior.
-- Audio preference persists across reloads.
+- Shop-close quake chance is `1%`.
+- Earthquake regeneration no longer restores the same deterministic block layout.
 - Repo docs and project artifacts reflect the new behavior.
 - Local verification passes and a preview URL is available.
 
 ## Next Owner
 
-- `User`
+- `Producer`

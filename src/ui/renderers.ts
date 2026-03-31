@@ -526,7 +526,7 @@ function renderHowToBody(): HTMLElement {
     ),
     createHowToCard(
       'Hazards',
-      'Rock needs TNT, lava burns hull, cargo slows lift, and earthquakes can reshuffle unseen rows below you.',
+      'Rock needs TNT, lava burns hull, cargo slows lift, and rare earthquakes can regenerate the underground.',
       [
         sheetSprite(TERRAIN_SHEET_URL, 1, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Rock'),
         sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Lava'),

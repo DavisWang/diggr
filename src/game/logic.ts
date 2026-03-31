@@ -35,6 +35,7 @@ import {
   isDestructibleType,
   isSolidType,
   regenerateWorldBelowRow,
+  rerollWorldLayout,
   setCell,
 } from './world';
 import type { DrillMiningMode } from './world';
@@ -99,6 +100,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
 
 export function restoreGame(state: GameState): GameState {
   normalizeSaveStationResumeState(state);
+  state.world.layoutSeed = state.world.layoutSeed ?? state.world.seed;
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
   state.activeConsumableEffect = state.activeConsumableEffect ?? null;
   state.activeEarthquake = state.activeEarthquake ?? null;
@@ -349,7 +351,7 @@ export function openShop(state: GameState, shop: ShopType): void {
   };
 
   if (shop === 'upgrades') {
-    modal.selectedCategory = 'hull';
+    modal.selectedCategory = 'drill';
     modal.selectedId = `${modal.selectedCategory}:silverium`;
   }
 
@@ -630,11 +632,13 @@ function startEarthquake(state: GameState, trigger: 'manual' | 'shop_close'): vo
     return;
   }
 
-  const regenerateFromRow = Math.max(1, Math.floor(state.viewportBottomRow) + 1);
+  const nextEarthquakeId = (state.meta.earthquakeCount ?? 0) + 1;
+  const regenerateFromRow = 1;
+  rerollWorldLayout(state.world, nextEarthquakeId);
   regenerateWorldBelowRow(state.world, regenerateFromRow);
-  state.meta.earthquakeCount = (state.meta.earthquakeCount ?? 0) + 1;
+  state.meta.earthquakeCount = nextEarthquakeId;
   state.activeEarthquake = {
-    id: state.meta.earthquakeCount,
+    id: nextEarthquakeId,
     remainingSeconds: EARTHQUAKE_DURATION_SECONDS,
     totalSeconds: EARTHQUAKE_DURATION_SECONDS,
     regenerateFromRow,
