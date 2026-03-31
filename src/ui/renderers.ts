@@ -65,6 +65,16 @@ interface GameplayHandlers {
   onBackToTitle: () => void;
 }
 
+export function renderAudioToggle(enabled: boolean, onToggle: () => void): HTMLButtonElement {
+  const node = button(enabled ? 'Audio On' : 'Audio Off', onToggle, {
+    className: enabled ? 'audio-toggle' : 'audio-toggle is-muted',
+  });
+  node.dataset.audioToggle = 'true';
+  node.setAttribute('aria-pressed', String(enabled));
+  node.setAttribute('aria-label', enabled ? 'Turn audio off' : 'Turn audio on');
+  return node;
+}
+
 export function renderTitleScreen(
   root: HTMLElement,
   options: { hasSave: boolean; showHowTo: boolean },

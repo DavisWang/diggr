@@ -1,6 +1,8 @@
 import { PLAYER_HALF_HEIGHT, SAVE_VERSION, STORAGE_KEY, SURFACE_PADS } from '../config/content';
 import type { GameState, SaveData } from '../types';
 
+export const AUDIO_ENABLED_STORAGE_KEY = 'diggr-audio-enabled';
+
 export function hasSaveGame(): boolean {
   return Boolean(loadSaveGame());
 }
@@ -84,4 +86,26 @@ export function clearSaveGame(): void {
   }
 
   localStorage.removeItem(STORAGE_KEY);
+}
+
+export function loadAudioEnabledPreference(): boolean {
+  if (typeof localStorage === 'undefined') {
+    return true;
+  }
+
+  const raw = localStorage.getItem(AUDIO_ENABLED_STORAGE_KEY);
+  if (raw === null) {
+    return true;
+  }
+
+  return raw !== '0';
+}
+
+export function persistAudioEnabledPreference(enabled: boolean): boolean {
+  if (typeof localStorage === 'undefined') {
+    return enabled;
+  }
+
+  localStorage.setItem(AUDIO_ENABLED_STORAGE_KEY, enabled ? '1' : '0');
+  return enabled;
 }

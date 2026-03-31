@@ -86,6 +86,7 @@ describe('app shell', () => {
 
   beforeEach(() => {
     gameInstances.length = 0;
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -156,6 +157,40 @@ describe('app shell', () => {
 
     expect(app.getState()?.mode).toBe('gameplay');
     expect(app.getState()?.modal.type).toBe('none');
+  });
+
+  test('audio toggle renders in the chrome layer on title and gameplay', () => {
+    const { app, chromeRoot } = createMountedTestApp();
+    mountedApps.push(app);
+
+    const titleToggle = chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    expect(titleToggle).toBeTruthy();
+    expect(titleToggle?.textContent).toContain('Audio');
+
+    app.startNewGame();
+
+    const gameplayToggle = chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    expect(gameplayToggle).toBeTruthy();
+    expect(gameplayToggle?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  test('audio preference persists across remounts', () => {
+    const firstMount = createMountedTestApp();
+    mountedApps.push(firstMount.app);
+
+    const toggle = firstMount.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    toggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(firstMount.app.isAudioEnabled()).toBe(false);
+    expect(localStorage.getItem('diggr-audio-enabled')).toBe('0');
+
+    const secondMount = createMountedTestApp();
+    mountedApps.push(secondMount.app);
+
+    const persistedToggle = secondMount.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    expect(secondMount.app.isAudioEnabled()).toBe(false);
+    expect(persistedToggle?.getAttribute('aria-pressed')).toBe('false');
+    expect(persistedToggle?.textContent).toContain('Off');
   });
 
   test('modal DOM stays stable across idle gameplay ticks while inventory is open', () => {
@@ -317,5 +352,6 @@ function createMountedTestApp() {
   return {
     app,
     overlayRoot: app.getOverlayRoot(),
+    chromeRoot: app.getChromeRoot(),
   };
 }

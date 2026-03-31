@@ -8,6 +8,8 @@ Diggr is a desktop-first mining game with:
 
 - deterministic chunked world generation
 - timed drilling with directional erosion animation
+- procedural retro lo-fi background music with synthesized gameplay sound FX
+- persistent corner audio toggle that mutes both music and sound FX
 - sprite-backed consumable-use animations for repair, fuel, explosives, and teleport tools
 - rare post-shop earthquakes that shake the camera, lock controls briefly, and reshuffle unseen mine rows below the viewport
 - testing mode support, including a manual `W` hotkey for earthquake validation
@@ -24,6 +26,7 @@ Diggr is a desktop-first mining game with:
 | Path | Purpose |
 | :-- | :-- |
 | `src/game/` | Pure gameplay rules, economy, movement, drilling, and state transitions |
+| `src/audio/` | App-owned procedural music and synthesized sound FX runtime |
 | `src/phaser/` | Phaser scenes plus pure render helpers for sprite/layout geometry |
 | `src/ui/` | DOM overlays for HUD, shops, inventory, title, and game-over screens |
 | `src/config/content.ts` | Balance, physics constants, shop pads, item defs, and render tuning |
@@ -48,8 +51,9 @@ Diggr is a desktop-first mining game with:
 | Layer | Responsibility |
 | :-- | :-- |
 | `logic.ts` | Owns gameplay truth; Phaser should not duplicate rules here |
+| `engine.ts` | Owns browser-safe audio unlock, loop playback, synthesized cues, and mute state |
 | `rendering.ts` | Converts gameplay state into render geometry that can be unit-tested |
-| `DiggrApp.ts` | Owns browser shell concerns: Phaser boot, overlays, persistence, app-level hotkeys |
+| `DiggrApp.ts` | Owns browser shell concerns: Phaser boot, overlays, persistence, audio routing, app-level hotkeys |
 | `renderers.ts` | Owns HTML modal and HUD rendering so click flows can be tested without browser automation |
 
 ## GitHub Pages
@@ -73,4 +77,5 @@ This repo is configured for GitHub Pages deployment through GitHub Actions.
 ## Notes
 
 - The project currently is not optimized for bundle size; Phaser still triggers a production chunk-size warning.
+- Audio is generated locally in-browser through the Web Audio API, so the shipped build does not depend on third-party music or SFX files.
 - The repo was not originally initialized as git in this local folder, so GitHub push readiness depends on local git setup as well as the workflow files.

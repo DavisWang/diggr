@@ -574,14 +574,14 @@ export const CONSUMABLE_DEFS: Record<ConsumableType, ConsumableDef> = {
     type: 'matter_transporter',
     label: 'Matter Transporter',
     description: 'Teleport beside the service station.',
-    price: 120,
+    price: 170,
     hotkey: 'F',
   },
   quantum_fissurizer: {
     type: 'quantum_fissurizer',
     label: 'Quantum Fissurizer',
     description: 'Throw the digger to a random above-ground position with velocity.',
-    price: 170,
+    price: 120,
     hotkey: 'V',
   },
 };

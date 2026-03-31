@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { AudioManager } from '../audio/engine';
+import { BLOCK_DEFS, CONSUMABLE_TYPES } from '../config/content';
 import { clearSaveGame, hasSaveGame, loadState, persistState } from '../lib/storage';
 import {
   buyConsumable,
@@ -13,8 +15,9 @@ import {
   setUpgradeSelection,
   tickGame,
 } from '../game/logic';
+import { getCell } from '../game/world';
 import type { ConsumableType, ControlState, EquipmentTier, GameState, ScreenType, TickResult, UpgradeType } from '../types';
-import { renderGameplayUi, renderTitleScreen } from './renderers';
+import { renderAudioToggle, renderGameplayUi, renderTitleScreen } from './renderers';
 import { GameScene } from '../phaser/GameScene';
 import { TitleScene } from '../phaser/TitleScene';
 import { matchesInventoryCloseKey, shouldHandleInventoryToggleHotkey } from '../phaser/keyboard';
@@ -27,6 +30,8 @@ export class DiggrApp {
   private readonly shell: HTMLDivElement;
   private readonly gameRoot: HTMLDivElement;
   private readonly overlayRoot: HTMLDivElement;
+  private readonly chromeRoot: HTMLDivElement;
+  private readonly audio = new AudioManager();
   private game: Phaser.Game | null = null;
   private screen: ScreenType = 'title';
   private gameState: GameState | null = null;
@@ -42,15 +47,18 @@ export class DiggrApp {
     this.gameRoot.className = 'diggr-game-root';
     this.overlayRoot = document.createElement('div');
     this.overlayRoot.className = 'diggr-overlay-root';
+    this.chromeRoot = document.createElement('div');
+    this.chromeRoot.className = 'diggr-chrome-root';
   }
 
   mount(): void {
-    this.shell.append(this.gameRoot, this.overlayRoot);
+    this.shell.append(this.gameRoot, this.overlayRoot, this.chromeRoot);
     this.root.append(this.shell);
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', this.handleWindowKeydown, true);
       document.addEventListener('keydown', this.handleWindowKeydown, true);
     }
+    this.shell.addEventListener('pointerdown', this.handleShellPointerDown, true);
     this.showTitle();
   }
 
@@ -60,8 +68,10 @@ export class DiggrApp {
       document.removeEventListener('keydown', this.handleWindowKeydown, true);
     }
 
+    this.shell.removeEventListener('pointerdown', this.handleShellPointerDown, true);
     this.game?.destroy(true);
     this.game = null;
+    this.audio.dispose();
     this.root.innerHTML = '';
   }
 
@@ -73,6 +83,7 @@ export class DiggrApp {
     this.uiDirty = true;
     this.overlayRoot.innerHTML = '';
     this.bootGame('title');
+    this.syncPersistentAudioState();
     this.render();
   }
 
@@ -96,6 +107,7 @@ export class DiggrApp {
     this.uiDirty = true;
     this.overlayRoot.innerHTML = '';
     this.bootGame('gameplay');
+    this.syncPersistentAudioState();
     this.render();
   }
 
@@ -117,6 +129,14 @@ export class DiggrApp {
     return this.overlayRoot;
   }
 
+  getChromeRoot(): HTMLDivElement {
+    return this.chromeRoot;
+  }
+
+  isAudioEnabled(): boolean {
+    return this.audio.isEnabled();
+  }
+
   sceneDidRender(): void {
     // Scenes only use this to request a UI sync after major transitions such as
     // boot. Continuous per-frame modal rerenders would make browser clicks flaky.
@@ -125,18 +145,7 @@ export class DiggrApp {
   }
 
   tick(controls: ControlState, dtSeconds: number): TickResult | null {
-    if (!this.gameState || this.screen !== 'gameplay') {
-      return null;
-    }
-
-    const previousUiState = {
-      mode: this.gameState.mode,
-      modalType: this.gameState.modal.type,
-      status: this.gameState.status,
-    };
-    const result = tickGame(this.gameState, controls, dtSeconds);
-    this.applyTickResult(result, dtSeconds, previousUiState);
-    return result;
+    return this.runGameplayTick(controls, dtSeconds);
   }
 
   openShop(shop: 'upgrades' | 'consumables' | 'refinery' | 'service' | 'save'): void {
@@ -144,7 +153,12 @@ export class DiggrApp {
       return;
     }
 
+    const previousModalType = this.gameState.modal.type;
     openShop(this.gameState, shop);
+    if (previousModalType !== this.gameState.modal.type) {
+      this.audio.playCue('shop_open');
+    }
+    this.syncPersistentAudioState();
     this.uiDirty = true;
     this.render();
   }
@@ -157,6 +171,7 @@ export class DiggrApp {
     this.uiDirty = true;
     this.overlayRoot.innerHTML = '';
     this.bootGame('gameplay');
+    this.syncPersistentAudioState();
     this.render();
   }
 
@@ -192,19 +207,30 @@ export class DiggrApp {
 
     event.preventDefault();
     event.stopPropagation();
+    this.handleUserGesture();
+    this.runGameplayTick({ left: false, right: false, up: false, down: false, consume: [], toggleInventory: true }, 0);
+  };
+
+  private handleShellPointerDown = (): void => {
+    this.handleUserGesture();
+  };
+
+  private runGameplayTick(controls: ControlState, dtSeconds: number): TickResult | null {
+    if (!this.gameState || this.screen !== 'gameplay') {
+      return null;
+    }
 
     const previousUiState = {
       mode: this.gameState.mode,
       modalType: this.gameState.modal.type,
       status: this.gameState.status,
     };
-    const result = tickGame(
-      this.gameState,
-      { left: false, right: false, up: false, down: false, consume: [], toggleInventory: true },
-      0,
-    );
-    this.applyTickResult(result, 0, previousUiState);
-  };
+    const audioSnapshot = captureAudioSnapshot(this.gameState);
+    const result = tickGame(this.gameState, controls, dtSeconds);
+    this.applyTickResult(result, dtSeconds, previousUiState);
+    this.syncAudioAfterTick(audioSnapshot, controls, result);
+    return result;
+  }
 
   private applyTickResult(
     result: TickResult,
@@ -249,20 +275,32 @@ export class DiggrApp {
           showHowTo: this.showHowTo,
         },
         {
-          onNewGame: () => this.startNewGame(),
-          onTestingGame: () => this.startTestingGame(),
-          onLoadGame: () => this.loadSavedGame(),
+          onNewGame: () => {
+            this.handleUserGesture();
+            this.startNewGame();
+          },
+          onTestingGame: () => {
+            this.handleUserGesture();
+            this.startTestingGame();
+          },
+          onLoadGame: () => {
+            this.handleUserGesture();
+            this.loadSavedGame();
+          },
           onToggleHowTo: () => {
+            this.handleUserGesture();
             this.showHowTo = !this.showHowTo;
             this.uiDirty = true;
             this.render();
           },
         },
       );
+      this.renderChrome();
       return;
     }
 
     if (!this.gameState) {
+      this.renderChrome();
       return;
     }
 
@@ -273,7 +311,9 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
         closeModal(this.gameState);
+        this.syncPersistentAudioState();
         this.uiDirty = true;
         this.render();
       },
@@ -282,6 +322,7 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
         const nextTier = getNextTier(this.gameState.player.equipment[category]);
         if (nextTier) {
           setUpgradeSelection(this.gameState, category, nextTier);
@@ -297,6 +338,7 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
         setUpgradeSelection(this.gameState, category, tier);
         this.uiDirty = true;
         this.render();
@@ -306,8 +348,15 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
+        const previousCash = this.gameState.player.cash;
+        const selectedCategory = this.gameState.modal.selectedCategory;
+        const previousTier = this.gameState.player.equipment[selectedCategory];
         const [category, tier] = this.gameState.modal.selectedId.split(':') as [UpgradeType, EquipmentTier];
         buyUpgrade(this.gameState, category, tier);
+        if (previousTier !== this.gameState.player.equipment[category] || previousCash !== this.gameState.player.cash) {
+          this.audio.playCue('buy_success_upgrade');
+        }
         persistState(this.gameState);
         this.uiDirty = true;
         this.render();
@@ -317,6 +366,7 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
         setConsumableSelection(this.gameState, type);
         this.uiDirty = true;
         this.render();
@@ -326,7 +376,14 @@ export class DiggrApp {
           return;
         }
 
-        buyConsumable(this.gameState, this.gameState.modal.selectedId as ConsumableType);
+        this.handleUserGesture();
+        const selectedId = this.gameState.modal.selectedId as ConsumableType;
+        const previousOwned = this.gameState.player.inventory[selectedId];
+        const previousCash = this.gameState.player.cash;
+        buyConsumable(this.gameState, selectedId);
+        if (previousOwned !== this.gameState.player.inventory[selectedId] || previousCash !== this.gameState.player.cash) {
+          this.audio.playCue('buy_success_consumable');
+        }
         persistState(this.gameState);
         this.uiDirty = true;
         this.render();
@@ -336,7 +393,11 @@ export class DiggrApp {
           return;
         }
 
-        sellAllCargo(this.gameState);
+        this.handleUserGesture();
+        const sold = sellAllCargo(this.gameState);
+        if (sold) {
+          this.audio.playCue('sell_cargo');
+        }
         persistState(this.gameState);
         this.uiDirty = true;
         this.render();
@@ -346,7 +407,18 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
+        const previousHealth = this.gameState.player.health;
+        const previousFuel = this.gameState.player.fuel;
+        const previousCash = this.gameState.player.cash;
         repairAndRefuel(this.gameState);
+        if (
+          previousHealth !== this.gameState.player.health ||
+          previousFuel !== this.gameState.player.fuel ||
+          previousCash !== this.gameState.player.cash
+        ) {
+          this.audio.playCue('service');
+        }
         persistState(this.gameState);
         this.uiDirty = true;
         this.render();
@@ -356,15 +428,121 @@ export class DiggrApp {
           return;
         }
 
+        this.handleUserGesture();
         closeModal(this.gameState);
         persistState(this.gameState);
         this.gameState.toast = 'Game saved.';
+        this.audio.playCue('save');
+        this.syncPersistentAudioState();
         this.uiDirty = true;
         this.render();
       },
-      onRestart: () => this.restartGame(),
-      onBackToTitle: () => this.showTitle(),
+      onRestart: () => {
+        this.handleUserGesture();
+        this.restartGame();
+      },
+      onBackToTitle: () => {
+        this.handleUserGesture();
+        this.showTitle();
+      },
     });
+    this.renderChrome();
+  }
+
+  private handleUserGesture(): void {
+    this.audio.registerUserGesture();
+  }
+
+  private renderChrome(): void {
+    this.chromeRoot.innerHTML = '';
+    this.chromeRoot.append(
+      renderAudioToggle(this.audio.isEnabled(), () => {
+        this.handleUserGesture();
+        this.audio.toggleEnabled();
+        this.syncPersistentAudioState();
+        this.renderChrome();
+      }),
+    );
+  }
+
+  private syncPersistentAudioState(): void {
+    const state = this.gameState;
+    if (!state || this.screen !== 'gameplay') {
+      this.audio.setLoopActive('drill', false);
+      this.audio.setLoopActive('thruster', false);
+      this.audio.setLoopActive('earthquake', false);
+      return;
+    }
+
+    this.audio.setLoopActive('drill', Boolean(state.player.activeDrill) && state.status === 'active' && state.mode === 'gameplay');
+    this.audio.setLoopActive('thruster', false);
+    this.audio.setLoopActive('earthquake', Boolean(state.activeEarthquake));
+  }
+
+  private syncAudioAfterTick(previous: AudioSnapshot, controls: ControlState, result: TickResult): void {
+    if (!this.gameState) {
+      return;
+    }
+
+    const state = this.gameState;
+    const thrusterActive =
+      state.status === 'active' &&
+      state.mode === 'gameplay' &&
+      controls.up &&
+      !state.player.activeDrill &&
+      state.player.fuel < previous.fuel - 0.001;
+
+    this.audio.setLoopActive('drill', Boolean(state.player.activeDrill) && state.status === 'active' && state.mode === 'gameplay');
+    this.audio.setLoopActive('thruster', thrusterActive);
+    this.audio.setLoopActive('earthquake', Boolean(state.activeEarthquake));
+
+    if (!previous.activeDrill && state.player.activeDrill) {
+      this.audio.playCue('drill_start');
+    }
+
+    if (previous.activeDrill && !state.player.activeDrill) {
+      const resolvedCell = getCell(state.world, previous.activeDrill.x, previous.activeDrill.row);
+      if (resolvedCell.type === 'air') {
+        const block = BLOCK_DEFS[previous.activeDrill.blockType];
+        this.audio.playCue('drill_break');
+        if (block.immediateCash && state.player.totalEarnings > previous.totalEarnings) {
+          this.audio.playCue('ore_treasure');
+        } else if (state.player.cargoUsed > previous.cargoUsed) {
+          this.audio.playCue('ore_gain');
+        } else if (block.cargo > 0) {
+          this.audio.playCue('cargo_discard');
+        }
+      }
+    }
+
+    for (const type of CONSUMABLE_TYPES) {
+      if (state.player.inventory[type] < previous.inventory[type]) {
+        this.audio.playCue(getConsumableCue(type));
+      }
+    }
+
+    if (state.player.health < previous.health) {
+      const fallLike = previous.airborne && !state.player.airborne && previous.velocityY > 0.9;
+      if (fallLike) {
+        this.audio.playCue('fall_impact');
+      }
+    }
+
+    if (!previous.activeEarthquakeId && state.activeEarthquake) {
+      this.audio.playCue('earthquake_start');
+    }
+
+    if (previous.activeEarthquakeId && !state.activeEarthquake) {
+      this.audio.playCue('earthquake_settle');
+    }
+
+    if (result.openedShop) {
+      this.audio.playCue('shop_open');
+    }
+
+    if (previous.status === 'active' && state.status === 'game_over') {
+      this.audio.playCue('game_over');
+    }
   }
 }
 
@@ -372,4 +550,53 @@ function getNextTier(current: EquipmentTier): EquipmentTier | null {
   const tiers: EquipmentTier[] = ['bronzium', 'silverium', 'goldium', 'mithrium', 'adamantium', 'runite'];
   const index = tiers.indexOf(current);
   return tiers[index + 1] ?? null;
+}
+
+interface AudioSnapshot {
+  status: GameState['status'];
+  health: number;
+  fuel: number;
+  cargoUsed: number;
+  totalEarnings: number;
+  inventory: GameState['player']['inventory'];
+  activeDrill: NonNullable<GameState['player']['activeDrill']> | null;
+  airborne: boolean;
+  velocityY: number;
+  activeEarthquakeId: number | null;
+}
+
+function captureAudioSnapshot(state: GameState): AudioSnapshot {
+  return {
+    status: state.status,
+    health: state.player.health,
+    fuel: state.player.fuel,
+    cargoUsed: state.player.cargoUsed,
+    totalEarnings: state.player.totalEarnings,
+    inventory: { ...state.player.inventory },
+    activeDrill: state.player.activeDrill ? { ...state.player.activeDrill } : null,
+    airborne: state.player.airborne,
+    velocityY: state.player.velocity.y,
+    activeEarthquakeId: state.activeEarthquake?.id ?? null,
+  };
+}
+
+function getConsumableCue(type: ConsumableType) {
+  switch (type) {
+    case 'repair_nanobot':
+    case 'repair_microbot':
+      return 'repair_use' as const;
+    case 'small_fuel_tank':
+    case 'large_fuel_tank':
+      return 'fuel_use' as const;
+    case 'small_tnt':
+      return 'explosive_small' as const;
+    case 'large_tnt':
+      return 'explosive_large' as const;
+    case 'matter_transporter':
+      return 'teleport_use' as const;
+    case 'quantum_fissurizer':
+      return 'fissurizer_launch' as const;
+    default:
+      return 'repair_use' as const;
+  }
 }

@@ -52,6 +52,13 @@ select {
   z-index: 2;
 }
 
+.diggr-chrome-root {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
 .panel {
   background: rgba(8, 12, 20, 0.86);
   border: 3px solid #f6ebc9;
@@ -230,6 +237,33 @@ select {
 .diggr-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.audio-toggle {
+  position: absolute;
+  right: clamp(10px, 1.6vw, 18px);
+  bottom: clamp(10px, 1.8vw, 20px);
+  padding: 8px 11px;
+  border-width: 2px;
+  background: rgba(11, 16, 26, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(24, 34, 52, 0.72),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+  font-size: clamp(0.62rem, 0.82vw, 0.74rem);
+  letter-spacing: 0.06rem;
+  opacity: 0.72;
+  pointer-events: auto;
+}
+
+.audio-toggle:hover:not(:disabled) {
+  opacity: 0.94;
+}
+
+.audio-toggle.is-muted {
+  color: #b8c4d6;
+  border-color: rgba(184, 196, 214, 0.78);
+  background: rgba(8, 12, 20, 0.76);
+  opacity: 0.56;
 }
 
 .title-footer {

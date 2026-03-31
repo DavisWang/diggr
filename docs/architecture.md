@@ -4,6 +4,7 @@
 
 - `Phaser` owns rendering, camera, keyboard input, and the game loop.
 - `src/game/` owns deterministic world generation, player rules, economy actions, consumable effects, and save-ready state.
+- `src/audio/engine.ts` owns procedural background music, synthesized sound FX, browser-safe audio unlock, and the persisted mute state.
 - Generated visual assets remain repo-owned source artifacts, not ad hoc outputs: sprite sheets and favicon are regenerated from `scripts/` so browser builds stay in sync with runtime content.
 - `src/ui/renderers.ts` owns the title screen, HUD, and modal overlays as plain DOM so UI flows can be regression-tested without driving a real browser.
 - The title screen and How To Play modal are sprite-backed DOM surfaces, not separate Phaser UIs, so presentation polish there should stay inside `renderers.ts` and `styles.css`.
@@ -13,10 +14,11 @@
 | Layer | Owns | Should not own |
 | :-- | :-- | :-- |
 | `src/game/logic.ts` | Movement, drilling, economy, modal transitions, survivability, save-safe state updates | Phaser scene objects, DOM, sprite geometry |
+| `src/audio/engine.ts` | Music playback, synthesized SFX, loop state, and browser audio lifecycle | Gameplay truth, DOM layout, Phaser rendering |
 | `src/game/world.ts` | Seeded terrain generation, chunking, diggable/solid cell helpers | UI or player-facing messaging |
 | `src/phaser/GameScene.ts` | Sprite pooling, camera follow, input sampling, per-frame drawing | Canonical gameplay rules |
 | `src/phaser/rendering.ts` | Pure render math such as erosion crops and rig offsets | Mutating gameplay state |
-| `src/ui/DiggrApp.ts` | Browser shell, persistence, app-level hotkeys, scene boot/reboot | Low-level terrain rendering |
+| `src/ui/DiggrApp.ts` | Browser shell, persistence, audio routing, app-level hotkeys, scene boot/reboot | Low-level terrain rendering |
 | `src/ui/renderers.ts` | Modal/HUD DOM and click targets | Gameplay simulation |
 
 ## Key decisions
@@ -43,6 +45,14 @@
 - Consumable use now also starts a short-lived `activeConsumableEffect` state in gameplay, so the scene can render feedback without inferring item use from toast text or raw input.
 - `GameScene` renders those effects through a dedicated sprite-backed FX layer, separate from terrain/drill rendering, so repair, fuel, TNT, transporter, and fissurizer visuals can evolve without changing item mechanics.
 - Consumable FX art is generated into `src/assets/sprites/consumable-effects-sheet.png` and selected through pure frame/layout helpers in `src/phaser/rendering.ts`.
+
+## Audio feedback model
+
+- `AudioManager` is app-owned and sits outside gameplay truth, so save data and logic tests stay deterministic.
+- `DiggrApp` translates real gameplay transitions into audio cues by diffing state transitions such as drill start/resolve, consumable inventory deltas, damage events, earthquakes, shop entry, and economy actions.
+- Continuous textures such as drilling, thrusters, and earthquakes are controlled from app-level state, not from DOM labels or toast strings.
+- Audio preference persists separately from save-game state and is exposed through a small always-available corner toggle in the overlay chrome.
+- Browser autoplay rules are handled through user-gesture unlock in the app shell before music and sound FX playback starts.
 
 ## Earthquake event model
 

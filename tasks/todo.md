@@ -2,14 +2,16 @@
 
 ## Plan
 
-- [x] Refresh the existing-project intake and work order for the title/how-to art request.
-- [x] Rebuild the title screen with sprite-backed hero art using the current game sheets.
-- [x] Rebuild the How To Play screen with sprite-backed instructional cards.
+- [x] Inspect the current repo, harness docs, request-affected code paths, and verification commands for the audio loop.
+- [x] Refresh the existing-project intake and work order for the audio/music request.
+- [x] Get approval on the proposed music and sound-FX inventory.
+- [x] Implement the audio runtime, toggle, persistence, and approved cue set.
 - [x] Add targeted regression coverage and refresh the affected docs.
-- [x] Rerun verification.
+- [x] Rerun verification and capture the local preview handoff.
 
 ## Review
 
-- The title screen now uses the live sprite language as a real hero composition instead of relying on text plus a generic backdrop.
-- The How To Play screen now teaches the loop with sprite-backed cards, which makes the surface shops, hazards, and consumables legible at a glance.
-- The implementation stays inside the existing DOM renderer and CSS layer, so gameplay code and modal handlers were preserved.
+- Producer artifacts now match the audio/music request instead of the prior title/how-to art loop.
+- Landed an app-owned procedural audio runtime with one retro lo-fi music loop, synthesized SFX, persisted mute preference, and a small overlay toggle.
+- Wired discrete cues to gameplay and economy transitions while keeping gameplay rules pure and save state unchanged.
+- Verification passed on `2026-03-31` with `npm test` (`93` tests) and `npm run build`.
