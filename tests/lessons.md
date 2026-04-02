@@ -55,3 +55,5 @@
 - Teleport regressions should assert both landing stability and no immediate modal re-entry. A “surface” destination is still broken if the next tick drops the rig or opens a shop.
 - Add a moving-to-settled regression for forced surface relocations. It is not enough to check the first tick; the shop should stay locked during motion and unlock only after a genuine stop.
 - Title-screen layout regressions need a real bottom-anchor rule when footer copy is meant to sit at the base of a panel. Vertical centering on the whole column will drift as hero content changes height.
+- Promo tile captions should use measured centering, not hand-tuned x offsets. Decorative copy blocks drift visibly when the composition changes.
+- Pixel-word promo logos should be centered from glyph width, not eyeballed x offsets. Once the panel or pixel size changes, hand-tuned placement drifts immediately.

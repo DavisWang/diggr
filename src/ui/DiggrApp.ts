@@ -454,9 +454,14 @@ export class DiggrApp {
   }
 
   private renderChrome(): void {
+    const enabled = this.audio.isEnabled();
+    const existing = this.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    if (existing && existing.getAttribute('aria-pressed') === String(enabled)) {
+      return;
+    }
     this.chromeRoot.innerHTML = '';
     this.chromeRoot.append(
-      renderAudioToggle(this.audio.isEnabled(), () => {
+      renderAudioToggle(enabled, () => {
         this.handleUserGesture();
         this.audio.toggleEnabled();
         this.syncPersistentAudioState();
@@ -505,6 +510,9 @@ export class DiggrApp {
       if (resolvedCell.type === 'air') {
         const block = BLOCK_DEFS[previous.activeDrill.blockType];
         this.audio.playCue('drill_break');
+        if (previous.activeDrill.blockType === 'lava' || previous.activeDrill.blockType === 'hidden_lava') {
+          this.audio.playCue('lava_burn');
+        }
         if (block.immediateCash && state.player.totalEarnings > previous.totalEarnings) {
           this.audio.playCue('ore_treasure');
         } else if (state.player.cargoUsed > previous.cargoUsed) {

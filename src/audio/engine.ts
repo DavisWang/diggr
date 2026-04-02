@@ -9,6 +9,7 @@ export type AudioCue =
   | 'shop_open'
   | 'drill_start'
   | 'drill_break'
+  | 'lava_burn'
   | 'ore_gain'
   | 'ore_treasure'
   | 'cargo_discard'
@@ -54,6 +55,7 @@ const CUE_GAINS: Record<AudioCue, number> = {
   shop_open: 0.55,
   drill_start: 0.34,
   drill_break: 0.56,
+  lava_burn: 0.8,
   ore_gain: 0.72,
   ore_treasure: 0.84,
   cargo_discard: 0.56,
@@ -464,6 +466,8 @@ function createCueBuffer(context: AudioContext, cue: AudioCue): AudioBuffer {
       return buildDrillStartBuffer(context);
     case 'drill_break':
       return buildDrillBreakBuffer(context);
+    case 'lava_burn':
+      return buildLavaBurnBuffer(context);
     case 'ore_gain':
       return buildCoinBuffer(context, [720, 960]);
     case 'ore_treasure':
@@ -988,6 +992,46 @@ function buildGameOverBuffer(context: AudioContext): AudioBuffer {
     pan: 0,
     attack: 0.004,
     release: 0.08,
+  });
+  normalizeTrack(track, 0.82);
+  return trackToBuffer(context, track);
+}
+
+function buildLavaBurnBuffer(context: AudioContext): AudioBuffer {
+  const track = createTrack(context.sampleRate, 0.52);
+  mixNoise(track, {
+    start: 0,
+    duration: 0.38,
+    gain: 0.16,
+    pan: 0.06,
+    attack: 0.002,
+    release: 0.14,
+    color: 0.62,
+    seed: 5_001,
+  });
+  mixTone(track, {
+    start: 0.01,
+    duration: 0.34,
+    frequency: 320,
+    endFrequency: 140,
+    gain: 0.14,
+    wave: 'saw',
+    pan: -0.08,
+    attack: 0.003,
+    release: 0.1,
+    vibratoDepth: 6,
+    vibratoHz: 5,
+  });
+  mixTone(track, {
+    start: 0.02,
+    duration: 0.28,
+    frequency: 88,
+    endFrequency: 52,
+    gain: 0.09,
+    wave: 'sine',
+    pan: 0,
+    attack: 0.005,
+    release: 0.1,
   });
   normalizeTrack(track, 0.82);
   return trackToBuffer(context, track);
