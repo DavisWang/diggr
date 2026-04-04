@@ -9,6 +9,7 @@ import {
   WORLD_WIDTH,
 } from '../config/content';
 import { getConsumableEffectRenderState, getDrillRenderState } from '../game/logic';
+import { surfaceShopLabel } from '../i18n';
 import { ensureRows, getCell } from '../game/world';
 import type { ControlState } from '../types';
 import type { DiggrApp } from '../ui/DiggrApp';
@@ -116,8 +117,8 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.shopLabels = SURFACE_PADS.map((pad) => {
-      const label = this.add.text(pad.x * TILE_SIZE, pad.y * TILE_SIZE - 34, pad.label, {
-        fontFamily: '"Courier New"',
+      const label = this.add.text(pad.x * TILE_SIZE, pad.y * TILE_SIZE - 34, surfaceShopLabel(pad.shop), {
+        fontFamily: '"Courier New", "PingFang SC", "Microsoft YaHei", sans-serif',
         fontSize: '12px',
         color: '#f6ebc9',
         align: 'center',

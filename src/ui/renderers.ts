@@ -19,11 +19,23 @@ import {
   computeServiceCost,
   getCargoEntries,
   getCurrentDepth,
-  getHowToCopy,
   getPlayerCargoRatio,
   getSelectedUpgrade,
   getUpgradeChoices,
 } from '../game/logic';
+import {
+  blockLabel,
+  consumableDescription,
+  consumableLabel,
+  getHowToFooterLines,
+  surfaceShopLabel,
+  t,
+  tierPrettyName,
+  upgradeCategoryLabel,
+  upgradeDescription,
+  upgradeLabel,
+  type Locale,
+} from '../i18n';
 import type {
   ConsumableType,
   EquipmentTier,
@@ -65,14 +77,44 @@ interface GameplayHandlers {
   onBackToTitle: () => void;
 }
 
-export function renderAudioToggle(enabled: boolean, onToggle: () => void): HTMLButtonElement {
-  const node = button(enabled ? 'Audio On' : 'Audio Off', onToggle, {
-    className: enabled ? 'audio-toggle' : 'audio-toggle is-muted',
-  });
-  node.dataset.audioToggle = 'true';
-  node.setAttribute('aria-pressed', String(enabled));
-  node.setAttribute('aria-label', enabled ? 'Turn audio off' : 'Turn audio on');
-  return node;
+const SVG_SPEAKER_ON = `<svg class="chrome-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/></svg>`;
+
+const SVG_SPEAKER_OFF = `<svg class="chrome-tool-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>`;
+
+const SVG_GLOBE = `<svg class="chrome-tool-icon chrome-tool-icon--globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
+
+export interface ChromeBarHandlers {
+  locale: Locale;
+  audioEnabled: boolean;
+  onLocaleToggle: () => void;
+  onAudioToggle: () => void;
+}
+
+/** Bottom-right chrome: language (single toggle) + icon audio control. */
+export function renderChromeBar(handlers: ChromeBarHandlers): HTMLElement {
+  const bar = div('diggr-chrome-bar');
+  bar.dataset.chromeBar = 'true';
+
+  const localeBtn = document.createElement('button');
+  localeBtn.type = 'button';
+  localeBtn.className = 'chrome-tool-btn chrome-tool-btn--locale';
+  localeBtn.dataset.localeToggle = 'true';
+  localeBtn.dataset.locale = handlers.locale;
+  localeBtn.setAttribute('aria-label', handlers.locale === 'en' ? t('lang.aria_to_zh') : t('lang.aria_to_en'));
+  localeBtn.innerHTML = `${SVG_GLOBE}<span class="chrome-locale-badge" aria-hidden="true">${handlers.locale === 'en' ? 'EN' : '中'}</span>`;
+  localeBtn.addEventListener('click', handlers.onLocaleToggle);
+
+  const audioBtn = document.createElement('button');
+  audioBtn.type = 'button';
+  audioBtn.className = `chrome-tool-btn chrome-tool-btn--audio${handlers.audioEnabled ? '' : ' is-muted'}`;
+  audioBtn.dataset.audioToggle = 'true';
+  audioBtn.setAttribute('aria-pressed', String(handlers.audioEnabled));
+  audioBtn.setAttribute('aria-label', handlers.audioEnabled ? t('audio.aria_on') : t('audio.aria_off'));
+  audioBtn.innerHTML = handlers.audioEnabled ? SVG_SPEAKER_ON : SVG_SPEAKER_OFF;
+  audioBtn.addEventListener('click', handlers.onAudioToggle);
+
+  bar.append(localeBtn, audioBtn);
+  return bar;
 }
 
 export function renderTitleScreen(
@@ -89,24 +131,20 @@ export function renderTitleScreen(
   const heading = renderPixelTitleLogo();
   heading.dataset.titleHeading = 'true';
   copy.append(
-    element(
-      'p',
-      'title-tagline',
-      'Dig through a shifting mine, cash out at the surface, and keep the rig alive long enough to reach the rarest veins.',
-    ),
+    element('p', 'title-tagline', t('title.tagline')),
   );
 
   const actions = div('title-actions');
   actions.append(
-    button('New Game', handlers.onNewGame),
-    button('Testing Mode', handlers.onTestingGame),
-    button('Load Game', handlers.onLoadGame, { disabled: !options.hasSave }),
-    button(options.showHowTo ? 'Hide How To Play' : 'How To Play', handlers.onToggleHowTo),
+    button(t('title.new_game'), handlers.onNewGame),
+    button(t('title.testing'), handlers.onTestingGame),
+    button(t('title.load'), handlers.onLoadGame, { disabled: !options.hasSave }),
+    button(options.showHowTo ? t('title.howto_hide') : t('title.howto_show'), handlers.onToggleHowTo),
   );
 
   copy.append(actions);
   hero.append(copy, renderTitleArtPanel());
-  card.append(heading, hero, element('div', 'title-footer', 'By Pwner Studios'));
+  card.append(heading, hero, element('div', 'title-footer', t('title.footer')));
   wrapper.append(card);
   root.append(wrapper);
 
@@ -138,18 +176,24 @@ function renderHud(state: GameState): HTMLElement {
   const depth = getCurrentDepth(state.player.position);
   const cargoPercent = Math.round(getPlayerCargoRatio(state.player) * 100);
 
+  const zoneLabel = state.player.lastSurfaceZone
+    ? surfaceShopLabel(state.player.lastSurfaceZone)
+    : depth > 0
+      ? t('hud.zone_underground')
+      : t('hud.zone_surface');
+
   leftPanel.append(
-    statLine('Cash', `$${state.player.cash.toFixed(0)}`),
-    statLine('Total Earnings', `$${state.player.totalEarnings.toFixed(0)}`),
-    statLine('Mode', state.meta.testingMode ? 'Testing' : 'Standard'),
-    statLine('Zone', state.player.lastSurfaceZone ?? (depth > 0 ? 'Underground' : 'Surface')),
+    statLine(t('hud.cash'), `$${state.player.cash.toFixed(0)}`),
+    statLine(t('hud.total_earnings'), `$${state.player.totalEarnings.toFixed(0)}`),
+    statLine(t('hud.mode'), state.meta.testingMode ? t('hud.mode_testing') : t('hud.mode_standard')),
+    statLine(t('hud.zone'), zoneLabel),
   );
 
   rightPanel.append(
-    statLine('Health', `${Math.ceil(state.player.health)} / ${state.player.maxHealth}`),
-    statLine('Fuel', `${Math.ceil(state.player.fuel)} / ${state.player.maxFuel}`),
-    statLine('Depth', `${depth} m`),
-    statLine('Cargo', `${cargoPercent}% (${state.player.cargoUsed}/${state.player.cargoCapacity})`),
+    statLine(t('hud.health'), `${Math.ceil(state.player.health)} / ${state.player.maxHealth}`),
+    statLine(t('hud.fuel'), `${Math.ceil(state.player.fuel)} / ${state.player.maxFuel}`),
+    statLine(t('hud.depth'), `${depth} ${t('hud.depth_suffix')}`),
+    statLine(t('hud.cargo'), `${cargoPercent}% (${state.player.cargoUsed}/${state.player.cargoCapacity})`),
   );
 
   hud.append(leftPanel, rightPanel);
@@ -164,7 +208,7 @@ function renderModalForState(state: GameState, handlers: GameplayHandlers): HTML
   header.append(element('h2', 'modal-title', title));
 
   if (state.modal.type !== 'game_over') {
-    header.append(button('X', handlers.onCloseModal, { className: 'modal-close' }));
+    header.append(button(t('modal.close'), handlers.onCloseModal, { className: 'modal-close' }));
   }
 
   card.append(header);
@@ -207,14 +251,16 @@ function renderInventoryModal(state: GameState): HTMLElement {
     .filter(([type]) => state.player.inventory[type] > 0);
 
   if (entries.length === 0) {
-    list.append(element('div', 'inventory-row', 'No consumables in inventory.'));
+    list.append(element('div', 'inventory-row', t('inventory.empty')));
   } else {
-    for (const [type, def] of entries) {
-      list.append(element('div', 'inventory-row', `${def.label} ..... x${state.player.inventory[type]}`));
+    for (const [type] of entries) {
+      list.append(
+        element('div', 'inventory-row', `${consumableLabel(type as ConsumableType)} ..... x${state.player.inventory[type as ConsumableType]}`),
+      );
     }
   }
 
-  body.append(list, element('p', 'status-line', 'Press Q or X to close.'));
+  body.append(list, element('p', 'status-line', t('inventory.close')));
   return body;
 }
 
@@ -226,7 +272,7 @@ function renderUpgradeModal(state: GameState, handlers: GameplayHandlers): HTMLE
   for (const category of UPGRADE_TYPES) {
     const selected = state.modal.selectedCategory === category;
     categories.append(
-      button(prettyUpgradeType(category), () => handlers.onSelectUpgradeCategory(category), {
+      button(upgradeCategoryLabel(category), () => handlers.onSelectUpgradeCategory(category), {
         className: selected ? 'choice-button is-selected' : 'choice-button',
       }),
     );
@@ -236,11 +282,19 @@ function renderUpgradeModal(state: GameState, handlers: GameplayHandlers): HTMLE
   const category = state.modal.selectedCategory ?? 'hull';
   const choices = getUpgradeChoices(state, category);
   if (choices.length === 0) {
-    choicesWrap.append(element('div', 'metric', 'Max tier reached.'));
+    choicesWrap.append(element('div', 'metric', t('upgrade.max_tier')));
   } else {
     for (const choice of choices) {
       const selected = state.modal.selectedId === `${category}:${choice.tier}`;
-      choicesWrap.append(createUpgradeIconButton(category, choice.tier, choice.label, selected, () => handlers.onSelectUpgradeTier(category, choice.tier)));
+      choicesWrap.append(
+        createUpgradeIconButton(
+          category,
+          choice.tier,
+          upgradeLabel(category, choice.tier),
+          selected,
+          () => handlers.onSelectUpgradeTier(category, choice.tier),
+        ),
+      );
     }
   }
 
@@ -254,20 +308,21 @@ function renderUpgradeDetail(state: GameState, handlers: GameplayHandlers): HTML
   const detail = div('panel detail-panel');
   const selected = getSelectedUpgrade(state);
   if (!selected) {
-    detail.append(element('p', 'detail-copy', 'Choose an upgrade to inspect pricing and effects.'));
+    detail.append(element('p', 'detail-copy', t('upgrade.choose')));
     return detail;
   }
 
+  const cat = state.modal.selectedCategory ?? 'hull';
   detail.append(
-    element('h3', 'detail-title', selected.label),
-    element('p', 'detail-copy', selected.description),
-    statLine('Current Tier', prettyTier(state.player.equipment[state.modal.selectedCategory ?? 'hull'])),
-    statLine('Target Tier', prettyTier(selected.tier)),
-    statLine('Price', `$${selected.price}`),
+    element('h3', 'detail-title', upgradeLabel(cat, selected.tier)),
+    element('p', 'detail-copy', upgradeDescription(cat, selected.tier)),
+    statLine(t('upgrade.current_tier'), tierPrettyName(state.player.equipment[cat])),
+    statLine(t('upgrade.target_tier'), tierPrettyName(selected.tier)),
+    statLine(t('upgrade.price'), `$${selected.price}`),
   );
 
   detail.append(
-    button('Buy Upgrade', handlers.onBuySelectedUpgrade, {
+    button(t('upgrade.buy'), handlers.onBuySelectedUpgrade, {
       disabled: state.player.cash < selected.price,
     }),
   );
@@ -316,19 +371,21 @@ function renderConsumableModal(state: GameState, handlers: GameplayHandlers): HT
   for (const [type, def] of Object.entries(CONSUMABLE_DEFS) as [ConsumableType, typeof CONSUMABLE_DEFS[ConsumableType]][]) {
     const selected = state.modal.selectedId === type;
     const owned = state.player.inventory[type];
-    inventoryGrid.append(createConsumableIconButton(type, def.label, def.hotkey, owned, selected, () => handlers.onSelectConsumable(type)));
+    inventoryGrid.append(
+      createConsumableIconButton(type, consumableLabel(type), def.hotkey, owned, selected, () => handlers.onSelectConsumable(type)),
+    );
   }
 
   const selectedType = (state.modal.selectedId as ConsumableType | undefined) ?? 'repair_nanobot';
   const selectedDef = CONSUMABLE_DEFS[selectedType];
   const detail = div('panel detail-panel');
   detail.append(
-    element('h3', 'detail-title', selectedDef.label),
-    element('p', 'detail-copy', selectedDef.description),
-    statLine('Hotkey', selectedDef.hotkey),
-    statLine('Owned', String(state.player.inventory[selectedType])),
-    statLine('Price', `$${selectedDef.price}`),
-    button('Buy Item', handlers.onBuySelectedConsumable, {
+    element('h3', 'detail-title', consumableLabel(selectedType)),
+    element('p', 'detail-copy', consumableDescription(selectedType)),
+    statLine(t('consumable.hotkey'), selectedDef.hotkey),
+    statLine(t('consumable.owned'), String(state.player.inventory[selectedType])),
+    statLine(t('upgrade.price'), `$${selectedDef.price}`),
+    button(t('consumable.buy'), handlers.onBuySelectedConsumable, {
       disabled: state.player.cash < selectedDef.price || state.player.inventory[selectedType] >= 99,
     }),
   );
@@ -383,7 +440,7 @@ function renderRefineryModal(state: GameState, handlers: GameplayHandlers): HTML
   const list = div('refinery-grid');
 
   if (entries.length === 0) {
-    list.append(element('div', 'metric', 'No ore or treasure in cargo.'));
+    list.append(element('div', 'metric', t('refinery.empty')));
   } else {
     for (const entry of entries) {
       list.append(createRefineryEntryCard(entry.type, entry.label, entry.amount, entry.subtotal));
@@ -392,10 +449,10 @@ function renderRefineryModal(state: GameState, handlers: GameplayHandlers): HTML
 
   const detail = div('panel detail-panel');
   detail.append(
-    element('h3', 'detail-title', 'Sell All Cargo'),
-    element('p', 'detail-copy', 'Refine and sell every ore and treasure stack in the hold in one action.'),
-    statLine('Grand Total', `$${total}`),
-    button('Sell All', handlers.onSellAllCargo, { disabled: total <= 0 }),
+    element('h3', 'detail-title', t('refinery.panel_title')),
+    element('p', 'detail-copy', t('refinery.panel_copy')),
+    statLine(t('refinery.grand_total'), `$${total}`),
+    button(t('refinery.sell_all'), handlers.onSellAllCargo, { disabled: total <= 0 }),
   );
 
   layout.append(list, detail);
@@ -443,10 +500,10 @@ function renderServiceModal(state: GameState, handlers: GameplayHandlers): HTMLE
   const panel = div('panel detail-panel');
   const cost = computeServiceCost(state);
   panel.append(
-    element('h3', 'detail-title', 'Repair And Refuel'),
-    element('p', 'detail-copy', 'Restore the hull and refill the tank in one service action.'),
-    statLine('Cost', cost <= 0 ? 'No service needed' : `$${cost}`),
-    button('Repair And Refuel', handlers.onRepairAndRefuel, {
+    element('h3', 'detail-title', t('service.title')),
+    element('p', 'detail-copy', t('service.copy')),
+    statLine(t('service.cost'), cost <= 0 ? t('service.no_needed') : `$${cost}`),
+    button(t('service.action'), handlers.onRepairAndRefuel, {
       disabled: cost <= 0 || state.player.cash < cost,
     }),
   );
@@ -458,9 +515,9 @@ function renderSaveModal(handlers: GameplayHandlers): HTMLElement {
   const body = div('modal-body');
   const panel = div('panel detail-panel');
   panel.append(
-    element('h3', 'detail-title', 'Save Progress'),
-    element('p', 'detail-copy', 'Write the current run to the local save slot without leaving the mine.'),
-    button('Save', handlers.onSaveGame),
+    element('h3', 'detail-title', t('save.title')),
+    element('p', 'detail-copy', t('save.copy')),
+    button(t('save.action'), handlers.onSaveGame),
   );
   body.append(panel);
   return body;
@@ -469,16 +526,19 @@ function renderSaveModal(handlers: GameplayHandlers): HTMLElement {
 function renderGameOverModal(state: GameState, handlers: GameplayHandlers): HTMLElement {
   const body = div('modal-body');
   body.append(
-    element('p', 'detail-copy', state.modal.message ?? 'The digger was lost.'),
+    element('p', 'detail-copy', t(state.modal.message ?? 'game_over.generic')),
     element(
       'p',
       'detail-copy',
-      `Run summary: depth ${getCurrentDepth(state.player.position)}m, total earnings $${state.player.totalEarnings.toFixed(0)}.`,
+      t('game_over.summary', {
+        depth: getCurrentDepth(state.player.position),
+        earnings: state.player.totalEarnings.toFixed(0),
+      }),
     ),
   );
 
   const actions = div('modal-actions');
-  actions.append(button('Restart', handlers.onRestart), button('Back To Title', handlers.onBackToTitle));
+  actions.append(button(t('game_over.restart'), handlers.onRestart), button(t('game_over.back'), handlers.onBackToTitle));
   body.append(actions);
   return body;
 }
@@ -487,7 +547,7 @@ function renderHowToModal(onClose: () => void): HTMLElement {
   const scrim = div('modal-scrim');
   const card = div('panel modal-card');
   const header = div('modal-header');
-  header.append(element('h2', 'modal-title', 'How To Play'), button('X', onClose, { className: 'modal-close' }));
+  header.append(element('h2', 'modal-title', t('modal.howto')), button(t('modal.close'), onClose, { className: 'modal-close' }));
   card.append(header, renderHowToBody());
   scrim.append(card);
   return scrim;
@@ -495,42 +555,79 @@ function renderHowToModal(onClose: () => void): HTMLElement {
 
 function renderHowToBody(): HTMLElement {
   const body = div('modal-body');
-  body.append(element('p', 'status-line', 'Goal: mine deeper, surface richer, and stay ahead of heat, fuel, and bad landings.'));
+  body.append(element('p', 'status-line', t('howto.goal')));
 
   const grid = div('howto-grid');
   grid.append(
     createHowToCard(
-      'Move + Drill',
-      'Arrow keys move the rig. Push left, right, or down into a block to start drilling it.',
+      t('howto.card.move_title'),
+      t('howto.card.move_body'),
       [
-        sheetSprite(DIGGER_SHEET_URL, 0, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', 'Digger'),
-        sheetSprite(TERRAIN_SHEET_URL, 0, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Dirt'),
-        sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Ore'),
+        sheetSprite(DIGGER_SHEET_URL, 0, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', t('sprite.digger')),
+        sheetSprite(TERRAIN_SHEET_URL, 0, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', t('sprite.dirt')),
+        sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', t('sprite.ore')),
       ],
     ),
     createHowToCard(
-      'Surface Loop',
-      'Return to the surface to upgrade, buy tools, refine cargo, repair, refuel, and save.',
+      t('howto.card.surface_title'),
+      t('howto.card.surface_body'),
       SURFACE_PADS.map((pad) =>
-        sheetSprite(SHOP_SHEET_URL, pad.spriteFrame, SHOP_SHEET_COLUMNS, pad.shop === 'save' ? 46 : 42, 'howto-sprite', pad.label),
+        sheetSprite(
+          SHOP_SHEET_URL,
+          pad.spriteFrame,
+          SHOP_SHEET_COLUMNS,
+          pad.shop === 'save' ? 46 : 42,
+          'howto-sprite',
+          surfaceShopLabel(pad.shop),
+        ),
       ),
     ),
     createHowToCard(
-      'Consumables',
-      'Repair, refuel, blast rock, or teleport with hotkey items. Testing mode also uses W to trigger an earthquake.',
+      t('howto.card.cons_title'),
+      t('howto.card.cons_body'),
       [
-        labeledSprite('Z', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('repair_nanobot'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Repair Nanobot')),
-        labeledSprite('C', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('small_tnt'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Small TNT')),
-        labeledSprite('F', sheetSprite(CONSUMABLE_ICON_SHEET_URL, getConsumableSpriteFrame('matter_transporter'), CONSUMABLE_ICON_SHEET_COLUMNS, 38, 'howto-sprite', 'Matter Transporter')),
+        labeledSprite(
+          'Z',
+          sheetSprite(
+            CONSUMABLE_ICON_SHEET_URL,
+            getConsumableSpriteFrame('repair_nanobot'),
+            CONSUMABLE_ICON_SHEET_COLUMNS,
+            38,
+            'howto-sprite',
+            consumableLabel('repair_nanobot'),
+          ),
+        ),
+        labeledSprite(
+          'C',
+          sheetSprite(
+            CONSUMABLE_ICON_SHEET_URL,
+            getConsumableSpriteFrame('small_tnt'),
+            CONSUMABLE_ICON_SHEET_COLUMNS,
+            38,
+            'howto-sprite',
+            consumableLabel('small_tnt'),
+          ),
+        ),
+        labeledSprite(
+          'F',
+          sheetSprite(
+            CONSUMABLE_ICON_SHEET_URL,
+            getConsumableSpriteFrame('matter_transporter'),
+            CONSUMABLE_ICON_SHEET_COLUMNS,
+            38,
+            'howto-sprite',
+            consumableLabel('matter_transporter'),
+          ),
+        ),
       ],
     ),
     createHowToCard(
-      'Hazards',
-      'Rock needs TNT, lava burns hull, cargo slows lift, and rare earthquakes can regenerate the underground.',
+      t('howto.card.hazard_title'),
+      t('howto.card.hazard_body'),
       [
-        sheetSprite(TERRAIN_SHEET_URL, 1, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Rock'),
-        sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', 'Lava'),
-        sheetSprite(DIGGER_SHEET_URL, 15, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', 'Damaged Digger'),
+        sheetSprite(TERRAIN_SHEET_URL, 1, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', t('sprite.rock')),
+        sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 40, 'howto-sprite', t('sprite.lava')),
+        sheetSprite(DIGGER_SHEET_URL, 15, DIGGER_SHEET_COLUMNS, 56, 'howto-sprite howto-sprite--hero', t('sprite.damaged')),
       ],
     ),
   );
@@ -538,7 +635,7 @@ function renderHowToBody(): HTMLElement {
   body.append(grid);
 
   const list = div('copy-list');
-  for (const line of getHowToCopy()) {
+  for (const line of getHowToFooterLines()) {
     list.append(element('div', 'howto-footnote', line));
   }
   body.append(list);
@@ -551,29 +648,64 @@ function renderTitleArtPanel(): HTMLElement {
 
   const skyline = div('title-skyline');
   skyline.append(
-    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[0].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[0].label),
-    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[1].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[1].label),
-    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[2].spriteFrame, SHOP_SHEET_COLUMNS, 56, 'title-art-sprite title-art-sprite--shop', SURFACE_PADS[2].label),
-    sheetSprite(SHOP_SHEET_URL, SURFACE_PADS[4].spriteFrame, SHOP_SHEET_COLUMNS, 58, 'title-art-sprite title-art-sprite--balloon', SURFACE_PADS[4].label),
+    sheetSprite(
+      SHOP_SHEET_URL,
+      SURFACE_PADS[0].spriteFrame,
+      SHOP_SHEET_COLUMNS,
+      56,
+      'title-art-sprite title-art-sprite--shop',
+      surfaceShopLabel(SURFACE_PADS[0].shop),
+    ),
+    sheetSprite(
+      SHOP_SHEET_URL,
+      SURFACE_PADS[1].spriteFrame,
+      SHOP_SHEET_COLUMNS,
+      56,
+      'title-art-sprite title-art-sprite--shop',
+      surfaceShopLabel(SURFACE_PADS[1].shop),
+    ),
+    sheetSprite(
+      SHOP_SHEET_URL,
+      SURFACE_PADS[2].spriteFrame,
+      SHOP_SHEET_COLUMNS,
+      56,
+      'title-art-sprite title-art-sprite--shop',
+      surfaceShopLabel(SURFACE_PADS[2].shop),
+    ),
+    sheetSprite(
+      SHOP_SHEET_URL,
+      SURFACE_PADS[4].spriteFrame,
+      SHOP_SHEET_COLUMNS,
+      58,
+      'title-art-sprite title-art-sprite--balloon',
+      surfaceShopLabel(SURFACE_PADS[4].shop),
+    ),
   );
 
   const stage = div('title-stage');
   const stageSky = div('title-stage-sky');
   stageSky.append(
-    sheetSprite(DIGGER_SHEET_URL, 10, DIGGER_SHEET_COLUMNS, 104, 'title-art-sprite title-art-sprite--digger', 'Flying Digger'),
-      sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 52, 'title-art-sprite title-art-sprite--lava', 'Lava'),
+    sheetSprite(
+      DIGGER_SHEET_URL,
+      10,
+      DIGGER_SHEET_COLUMNS,
+      104,
+      'title-art-sprite title-art-sprite--digger',
+      t('sprite.flying_digger'),
+    ),
+    sheetSprite(TERRAIN_SHEET_URL, 2, TERRAIN_SHEET_COLUMNS, 52, 'title-art-sprite title-art-sprite--lava', t('sprite.lava')),
   );
   const stageGround = div('title-stage-ground');
   const oreCluster = div('title-ore-cluster');
   oreCluster.append(
-    sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Tinnite'),
-    sheetSprite(TERRAIN_SHEET_URL, 6, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Goldium'),
-    sheetSprite(TERRAIN_SHEET_URL, 9, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', 'Runite'),
+    sheetSprite(TERRAIN_SHEET_URL, 3, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', blockLabel('tinnite')),
+    sheetSprite(TERRAIN_SHEET_URL, 6, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', blockLabel('goldium_ore')),
+    sheetSprite(TERRAIN_SHEET_URL, 9, TERRAIN_SHEET_COLUMNS, 40, 'title-art-sprite', blockLabel('runite_ore')),
   );
   stageGround.append(oreCluster);
   stage.append(stageSky, skyline, stageGround);
 
-  panel.append(stage, element('div', 'title-art-caption', 'Drill deeper. Surface smarter. Survive the shift.'));
+  panel.append(stage, element('div', 'title-art-caption', t('title.caption')));
   return panel;
 }
 
@@ -595,21 +727,21 @@ function labeledSprite(label: string, sprite: HTMLElement): HTMLElement {
 function getModalTitle(type: ShopType | GameState['modal']['type']): string {
   switch (type) {
     case 'upgrades':
-      return 'Upgrades Shop';
+      return t('modal.upgrades');
     case 'inventory':
-      return 'Inventory';
+      return t('modal.inventory');
     case 'consumables':
-      return 'Consumables Shop';
+      return t('modal.consumables');
     case 'refinery':
-      return 'Ore Refinery';
+      return t('modal.refinery');
     case 'service':
-      return 'Repair + Refuel';
+      return t('modal.service');
     case 'save':
-      return 'Save Station';
+      return t('modal.save');
     case 'game_over':
-      return 'Game Over';
+      return t('modal.game_over');
     default:
-      return 'How To Play';
+      return t('modal.howto');
   }
 }
 
@@ -617,28 +749,6 @@ function statLine(label: string, value: string): HTMLElement {
   const wrapper = div('metric stat-line');
   wrapper.append(element('span', 'hud-label stat-line-label', label), element('span', 'stat-line-value', value));
   return wrapper;
-}
-
-function prettyUpgradeType(type: UpgradeType): string {
-  switch (type) {
-    case 'cargo_hold':
-      return 'Cargo Hold';
-    case 'fuel_tank':
-      return 'Fuel Tank';
-    default:
-      return capitalize(type);
-  }
-}
-
-function prettyTier(tier: EquipmentTier): string {
-  return capitalize(tier);
-}
-
-function capitalize(value: string): string {
-  return value
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
 }
 
 function div(className: string): HTMLDivElement {

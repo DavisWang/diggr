@@ -776,13 +776,6 @@ export const SURFACE_PADS: ShopPad[] = [
 
 export const TELEPORT_SURFACE_TARGET = { x: 9.8, y: -0.48 };
 
-export const HOW_TO_COPY = [
-  'Arrow keys move the digger. Fly with Up and dig left/right/down by pushing into blocks.',
-  'Mine ore, surface, refine cargo, and buy better parts to reach deeper layers safely.',
-  'Z/A repair. X/S refuel. C/D TNT. F matter transporter. V quantum fissurizer.',
-  'Rock requires TNT. Lava hurts on contact. Hidden lava looks like dirt until you mine it.',
-];
-
 export function getTierIndex(tier: EquipmentTier): number {
   return EQUIPMENT_TIERS.indexOf(tier);
 }

@@ -16,8 +16,9 @@ import {
   tickGame,
 } from '../game/logic';
 import { getCell } from '../game/world';
+import { applyDocumentLocale, getLocale, setLocale, t } from '../i18n';
 import type { ConsumableType, ControlState, EquipmentTier, GameState, ScreenType, TickResult, UpgradeType } from '../types';
-import { renderAudioToggle, renderGameplayUi, renderTitleScreen } from './renderers';
+import { renderChromeBar, renderGameplayUi, renderTitleScreen } from './renderers';
 import { GameScene } from '../phaser/GameScene';
 import { TitleScene } from '../phaser/TitleScene';
 import { matchesInventoryCloseKey, shouldHandleInventoryToggleHotkey } from '../phaser/keyboard';
@@ -59,6 +60,7 @@ export class DiggrApp {
       document.addEventListener('keydown', this.handleWindowKeydown, true);
     }
     this.shell.addEventListener('pointerdown', this.handleShellPointerDown, true);
+    applyDocumentLocale();
     this.showTitle();
   }
 
@@ -431,7 +433,7 @@ export class DiggrApp {
         this.handleUserGesture();
         closeModal(this.gameState);
         persistState(this.gameState);
-        this.gameState.toast = 'Game saved.';
+        this.gameState.toast = t('toast.game_saved');
         this.audio.playCue('save');
         this.syncPersistentAudioState();
         this.uiDirty = true;
@@ -455,17 +457,36 @@ export class DiggrApp {
 
   private renderChrome(): void {
     const enabled = this.audio.isEnabled();
-    const existing = this.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
-    if (existing && existing.getAttribute('aria-pressed') === String(enabled)) {
+    const locale = getLocale();
+    const existingBar = this.chromeRoot.querySelector('[data-chrome-bar="true"]');
+    const existingLocaleBtn = this.chromeRoot.querySelector('[data-locale-toggle="true"]') as HTMLButtonElement | null;
+    const existingAudio = this.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
+    if (
+      existingBar &&
+      existingLocaleBtn?.dataset.locale === locale &&
+      existingAudio?.getAttribute('aria-pressed') === String(enabled)
+    ) {
       return;
     }
     this.chromeRoot.innerHTML = '';
     this.chromeRoot.append(
-      renderAudioToggle(enabled, () => {
-        this.handleUserGesture();
-        this.audio.toggleEnabled();
-        this.syncPersistentAudioState();
-        this.renderChrome();
+      renderChromeBar({
+        locale,
+        audioEnabled: enabled,
+        onLocaleToggle: () => {
+          this.handleUserGesture();
+          const next = getLocale() === 'en' ? 'zh-CN' : 'en';
+          setLocale(next);
+          this.uiDirty = true;
+          this.render();
+          this.renderChrome();
+        },
+        onAudioToggle: () => {
+          this.handleUserGesture();
+          this.audio.toggleEnabled();
+          this.syncPersistentAudioState();
+          this.renderChrome();
+        },
       }),
     );
   }

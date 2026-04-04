@@ -6,7 +6,8 @@
 - `src/game/` owns deterministic world generation, player rules, economy actions, consumable effects, and save-ready state.
 - `src/audio/engine.ts` owns procedural background music, synthesized sound FX, browser-safe audio unlock, and the persisted mute state.
 - Generated visual assets remain repo-owned source artifacts, not ad hoc outputs: sprite sheets and favicon are regenerated from `scripts/` so browser builds stay in sync with runtime content.
-- `src/ui/renderers.ts` owns the title screen, HUD, and modal overlays as plain DOM so UI flows can be regression-tested without driving a real browser.
+- `src/ui/renderers.ts` owns the title screen, HUD, modal overlays, and the chrome bar (locale + audio) as plain DOM so UI flows can be regression-tested without driving a real browser.
+- `src/i18n/` owns UI copy, `t()` lookups, locale persistence, `document.documentElement` lang/class (`locale-zh`), and zh-specific labels for game content surfaced in HUD and scenes.
 - The title screen and How To Play modal are sprite-backed DOM surfaces, not separate Phaser UIs, so presentation polish there should stay inside `renderers.ts` and `styles.css`.
 
 ## Runtime boundaries
@@ -19,7 +20,8 @@
 | `src/phaser/GameScene.ts` | Sprite pooling, camera follow, input sampling, per-frame drawing | Canonical gameplay rules |
 | `src/phaser/rendering.ts` | Pure render math such as erosion crops and rig offsets | Mutating gameplay state |
 | `src/ui/DiggrApp.ts` | Browser shell, persistence, audio routing, app-level hotkeys, scene boot/reboot | Low-level terrain rendering |
-| `src/ui/renderers.ts` | Modal/HUD DOM and click targets | Gameplay simulation |
+| `src/ui/renderers.ts` | Modal/HUD DOM, chrome bar, and click targets | Gameplay simulation |
+| `src/i18n/` (via imports) | Player-facing strings and locale-aware labels | Gameplay simulation |
 
 ## Key decisions
 
@@ -52,7 +54,7 @@
 - `AudioManager` is app-owned and sits outside gameplay truth, so save data and logic tests stay deterministic.
 - `DiggrApp` translates real gameplay transitions into audio cues by diffing state transitions such as drill start/resolve, consumable inventory deltas, damage events, earthquakes, shop entry, and economy actions.
 - Continuous textures such as drilling, thrusters, and earthquakes are controlled from app-level state, not from DOM labels or toast strings.
-- Audio preference persists separately from save-game state and is exposed through a small always-available corner toggle in the overlay chrome.
+- Audio preference persists separately from save-game state. Language preference also persists in `localStorage`. Both are exposed in the overlay chrome (`diggr-chrome-root`): a locale toggle (cycles English ↔ Simplified Chinese) and an icon-only mute control for music and SFX.
 - Browser autoplay rules are handled through user-gesture unlock in the app shell before music and sound FX playback starts.
 
 ## Earthquake event model

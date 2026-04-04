@@ -7,6 +7,16 @@
   color: #f6ebc9;
 }
 
+:root.locale-zh {
+  font-family:
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Noto Sans SC",
+    "Courier New",
+    monospace;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -111,6 +121,78 @@ select {
 .title-screen {
   background:
     linear-gradient(180deg, rgba(10, 12, 22, 0.55), rgba(5, 8, 14, 0.82));
+}
+
+.diggr-chrome-bar {
+  position: absolute;
+  right: clamp(10px, 1.6vw, 18px);
+  bottom: clamp(10px, 1.8vw, 20px);
+  z-index: 6;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: clamp(6px, 1vw, 10px);
+  pointer-events: auto;
+}
+
+.chrome-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border: 2px solid #f6ebc9;
+  border-radius: 4px;
+  background: rgba(11, 16, 26, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(24, 34, 52, 0.72),
+    0 10px 24px rgba(0, 0, 0, 0.24);
+  color: #f6ebc9;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  transition:
+    opacity 0.12s ease,
+    filter 0.12s ease;
+}
+
+.chrome-tool-btn:hover:not(:disabled) {
+  opacity: 0.98;
+  filter: brightness(1.08);
+}
+
+.chrome-tool-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.chrome-tool-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+.chrome-tool-icon--globe {
+  width: 20px;
+  height: 20px;
+}
+
+.chrome-locale-badge {
+  line-height: 1;
+  min-width: 1.25em;
+  text-align: center;
+}
+
+.chrome-tool-btn--audio.is-muted {
+  color: #b8c4d6;
+  border-color: rgba(184, 196, 214, 0.78);
+  background: rgba(8, 12, 20, 0.76);
+  opacity: 0.62;
 }
 
 .title-card,
@@ -237,33 +319,6 @@ select {
 .diggr-button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
-}
-
-.audio-toggle {
-  position: absolute;
-  right: clamp(10px, 1.6vw, 18px);
-  bottom: clamp(10px, 1.8vw, 20px);
-  padding: 8px 11px;
-  border-width: 2px;
-  background: rgba(11, 16, 26, 0.82);
-  box-shadow:
-    0 0 0 2px rgba(24, 34, 52, 0.72),
-    0 10px 24px rgba(0, 0, 0, 0.24);
-  font-size: clamp(0.62rem, 0.82vw, 0.74rem);
-  letter-spacing: 0.06rem;
-  opacity: 0.72;
-  pointer-events: auto;
-}
-
-.audio-toggle:hover:not(:disabled) {
-  opacity: 0.94;
-}
-
-.audio-toggle.is-muted {
-  color: #b8c4d6;
-  border-color: rgba(184, 196, 214, 0.78);
-  background: rgba(8, 12, 20, 0.76);
-  opacity: 0.56;
 }
 
 .title-footer {

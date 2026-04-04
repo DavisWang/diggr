@@ -165,7 +165,7 @@ describe('app shell', () => {
 
     const titleToggle = chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
     expect(titleToggle).toBeTruthy();
-    expect(titleToggle?.textContent).toContain('Audio');
+    expect(titleToggle?.querySelector('svg.chrome-tool-icon')).toBeTruthy();
 
     app.startNewGame();
 
@@ -190,7 +190,7 @@ describe('app shell', () => {
     const persistedToggle = secondMount.chromeRoot.querySelector('[data-audio-toggle="true"]') as HTMLButtonElement | null;
     expect(secondMount.app.isAudioEnabled()).toBe(false);
     expect(persistedToggle?.getAttribute('aria-pressed')).toBe('false');
-    expect(persistedToggle?.textContent).toContain('Off');
+    expect(persistedToggle?.classList.contains('is-muted')).toBe(true);
   });
 
   test('modal DOM stays stable across idle gameplay ticks while inventory is open', () => {

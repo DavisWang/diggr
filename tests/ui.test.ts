@@ -6,16 +6,7 @@ describe('ui rendering', () => {
   test('title screen disables load when no save exists', () => {
     const root = document.createElement('div');
 
-    renderTitleScreen(
-      root,
-      { hasSave: false, showHowTo: false },
-      {
-        onNewGame: vi.fn(),
-        onTestingGame: vi.fn(),
-        onLoadGame: vi.fn(),
-        onToggleHowTo: vi.fn(),
-      },
-    );
+    renderTitleScreen(root, { hasSave: false, showHowTo: false }, titleHandlers());
 
     const loadButton = Array.from(root.querySelectorAll('button')).find((button) => button.textContent === 'Load Game');
     expect(loadButton).toBeTruthy();
@@ -25,16 +16,7 @@ describe('ui rendering', () => {
   test('title screen exposes a testing mode entry point', () => {
     const root = document.createElement('div');
 
-    renderTitleScreen(
-      root,
-      { hasSave: false, showHowTo: false },
-      {
-        onNewGame: vi.fn(),
-        onTestingGame: vi.fn(),
-        onLoadGame: vi.fn(),
-        onToggleHowTo: vi.fn(),
-      },
-    );
+    renderTitleScreen(root, { hasSave: false, showHowTo: false }, titleHandlers());
 
     const testingButton = Array.from(root.querySelectorAll('button')).find((button) => button.textContent === 'Testing Mode');
     expect(testingButton).toBeTruthy();
@@ -43,16 +25,7 @@ describe('ui rendering', () => {
   test('title screen renders sprite-backed hero art', () => {
     const root = document.createElement('div');
 
-    renderTitleScreen(
-      root,
-      { hasSave: false, showHowTo: false },
-      {
-        onNewGame: vi.fn(),
-        onTestingGame: vi.fn(),
-        onLoadGame: vi.fn(),
-        onToggleHowTo: vi.fn(),
-      },
-    );
+    renderTitleScreen(root, { hasSave: false, showHowTo: false }, titleHandlers());
 
     expect(root.querySelector('[data-title-art="true"]')).toBeTruthy();
     expect(root.querySelector('.title-art-sprite--digger')).toBeTruthy();
@@ -62,16 +35,7 @@ describe('ui rendering', () => {
   test('how to play modal renders sprite-backed instruction cards', () => {
     const root = document.createElement('div');
 
-    renderTitleScreen(
-      root,
-      { hasSave: false, showHowTo: true },
-      {
-        onNewGame: vi.fn(),
-        onTestingGame: vi.fn(),
-        onLoadGame: vi.fn(),
-        onToggleHowTo: vi.fn(),
-      },
-    );
+    renderTitleScreen(root, { hasSave: false, showHowTo: true }, titleHandlers());
 
     expect(root.querySelectorAll('[data-howto-card="true"]')).toHaveLength(4);
     expect(root.querySelectorAll('.howto-sprite').length).toBeGreaterThan(8);
@@ -336,7 +300,7 @@ describe('ui rendering', () => {
     const state = createNewGame(2023);
     state.status = 'game_over';
     state.mode = 'modal';
-    state.modal = { type: 'game_over', message: 'Fuel depleted.' };
+    state.modal = { type: 'game_over', message: 'game_over.fuel' };
 
     const handlers = emptyHandlers();
     renderGameplayUi(root, state, handlers);
@@ -365,5 +329,14 @@ function emptyHandlers() {
     onSaveGame: vi.fn(),
     onRestart: vi.fn(),
     onBackToTitle: vi.fn(),
+  };
+}
+
+function titleHandlers() {
+  return {
+    onNewGame: vi.fn(),
+    onTestingGame: vi.fn(),
+    onLoadGame: vi.fn(),
+    onToggleHowTo: vi.fn(),
   };
 }

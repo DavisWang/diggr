@@ -9,7 +9,8 @@ Diggr is a desktop-first mining game with:
 - deterministic chunked world generation
 - timed drilling with directional erosion animation
 - procedural retro lo-fi background music with synthesized gameplay sound FX
-- persistent corner audio toggle that mutes both music and sound FX
+- English and Simplified Chinese UI (`src/i18n/`) with locale preference in `localStorage`
+- bottom-right chrome bar: single locale toggle (globe + active language badge) and icon-only audio mute for music and SFX
 - sprite-backed consumable-use animations for repair, fuel, explosives, and teleport tools
 - rare post-shop earthquakes that shake the camera, lock controls briefly, and fully regenerate the underground with a new layout
 - upgrade shop opens on drills by default so the primary progression path is surfaced first
@@ -30,6 +31,8 @@ Diggr is a desktop-first mining game with:
 | `src/audio/` | App-owned procedural music and synthesized sound FX runtime |
 | `src/phaser/` | Phaser scenes plus pure render helpers for sprite/layout geometry |
 | `src/ui/` | DOM overlays for HUD, shops, inventory, title, and game-over screens |
+| `src/i18n/` | UI strings, locale helpers, and zh game copy for blocks, shops, upgrades, and consumables |
+| `docs/i18n-fictional-names.md` | Notes on translating spoof tier and ore names for Chinese |
 | `src/config/content.ts` | Balance, physics constants, shop pads, item defs, and render tuning |
 | `docs/architecture.md` | Architectural model and key design decisions |
 | `docs/deployment.md` | GitHub Pages deployment instructions |

@@ -7,7 +7,6 @@ import {
   ENTRY_COLUMN,
   DRILL_COMPLETION_INSET,
   EQUIPMENT_TIERS,
-  HOW_TO_COPY,
   PHYSICS,
   PLAYER_HALF_HEIGHT,
   PLAYER_HALF_WIDTH,
@@ -24,6 +23,7 @@ import {
   WORLD_WIDTH,
   getTierIndex,
 } from '../config/content';
+import { blockLabel, consumableLabel, t, upgradeLabel } from '../i18n';
 import { clamp, hashSeed, mulberry32, randomInt } from '../lib/random';
 import {
   canDrillTierMine,
@@ -91,7 +91,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
       shopCloseCount: 0,
       earthquakeCount: 0,
     },
-    toast: testingMode ? 'Testing mode active. Fuel, hull, and cash are boosted for sandbox runs.' : 'Dig down, sell ore, and upgrade the rig.',
+    toast: testingMode ? t('toast.intro_testing') : t('toast.intro'),
     blockedShopUntilExit: null,
     blockSurfaceShopsUntilStop: false,
     viewportBottomRow: 0,
@@ -292,7 +292,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   if (!previousAboveSurface && nowAboveSurface && state.meta.hasVisitedUnderground) {
     result.surfaceReturn = true;
     state.meta.hasVisitedUnderground = false;
-    result.toast = result.toast ?? 'Surface reached. Shops and refinery are available.';
+    result.toast = result.toast ?? t('toast.surface');
   }
 
   if (
@@ -332,7 +332,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
     state.mode = 'modal';
     state.modal = {
       type: 'game_over',
-      message: state.player.health <= 0 ? 'Hull integrity failed.' : 'Fuel depleted.',
+      message: state.player.health <= 0 ? 'game_over.hull' : 'game_over.fuel',
     };
     state.toast = null;
     result.gameOver = true;
@@ -426,12 +426,12 @@ export function getUpgradeChoices(state: GameState, category: UpgradeType): Upgr
 export function buyUpgrade(state: GameState, category: UpgradeType, tier: EquipmentTier): string | null {
   const currentTier = state.player.equipment[category];
   if (getTierIndex(tier) <= getTierIndex(currentTier)) {
-    return 'Already installed.';
+    return t('err.already_installed');
   }
 
   const def = UPGRADE_TIER_DEFS[category][tier];
   if (state.player.cash < def.price) {
-    return 'Not enough cash for that upgrade.';
+    return t('err.upgrade_cash');
   }
 
   if (!state.meta.testingMode) {
@@ -439,25 +439,25 @@ export function buyUpgrade(state: GameState, category: UpgradeType, tier: Equipm
   }
   state.player.equipment[category] = tier;
   syncPlayerDerived(state.player, state.meta.testingMode);
-  state.toast = `${def.label} installed.`;
+  state.toast = t('toast.upgrade_installed', { name: upgradeLabel(category, tier) });
   return state.toast;
 }
 
 export function buyConsumable(state: GameState, type: ConsumableType): string | null {
   const def = CONSUMABLE_DEFS[type];
   if (state.player.cash < def.price) {
-    return 'Not enough cash for that item.';
+    return t('err.buy_cash');
   }
 
   if (state.player.inventory[type] >= 99) {
-    return 'Inventory cap reached for that item.';
+    return t('err.inventory_cap');
   }
 
   if (!state.meta.testingMode) {
     state.player.cash -= def.price;
   }
   state.player.inventory[type] += 1;
-  state.toast = `${def.label} added to inventory.`;
+  state.toast = t('toast.consumable_added', { name: consumableLabel(type) });
   return state.toast;
 }
 
@@ -476,7 +476,7 @@ export function sellAllCargo(state: GameState): { total: number; message: string
   state.player.totalEarnings += total;
   state.player.cargo = {};
   state.player.cargoUsed = 0;
-  const message = `Sold cargo for $${total}.`;
+  const message = t('toast.sold_cargo', { total });
   state.toast = message;
   return { total, message };
 }
@@ -486,7 +486,7 @@ export function getCargoEntries(state: GameState): Array<{ type: SellableMateria
     .filter(([, amount]) => amount > 0)
     .map(([type, amount]) => ({
       type: type as SellableMaterial,
-      label: BLOCK_DEFS[type as SellableMaterial].label,
+      label: blockLabel(type as SellableMaterial),
       amount,
       subtotal: BLOCK_DEFS[type as SellableMaterial].value * amount,
     }));
@@ -505,11 +505,11 @@ export function computeServiceCost(state: GameState): number {
 export function repairAndRefuel(state: GameState): string | null {
   const cost = computeServiceCost(state);
   if (cost <= 0) {
-    return 'The rig is already fully serviced.';
+    return t('err.fully_serviced');
   }
 
   if (state.player.cash < cost) {
-    return 'Not enough cash to repair and refuel.';
+    return t('err.service_cash');
   }
 
   if (!state.meta.testingMode) {
@@ -517,7 +517,7 @@ export function repairAndRefuel(state: GameState): string | null {
   }
   state.player.health = state.player.maxHealth;
   state.player.fuel = state.player.maxFuel;
-  state.toast = `Rig serviced for $${cost}.`;
+  state.toast = t('toast.rig_serviced', { cost });
   return state.toast;
 }
 
@@ -532,30 +532,30 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
   switch (type) {
     case 'repair_nanobot':
       state.player.health = Math.min(state.player.maxHealth, state.player.health + 28);
-      return 'Repair Nanobot restored hull integrity.';
+      return t('cons.result.repair_nanobot');
     case 'repair_microbot':
       state.player.health = Math.min(state.player.maxHealth, state.player.health + 64);
-      return 'Repair Microbot restored major hull integrity.';
+      return t('cons.result.repair_microbot');
     case 'small_fuel_tank':
       state.player.fuel = Math.min(state.player.maxFuel, state.player.fuel + 42);
-      return 'Small Fuel Tank restored fuel.';
+      return t('cons.result.small_fuel');
     case 'large_fuel_tank':
       state.player.fuel = Math.min(state.player.maxFuel, state.player.fuel + 84);
-      return 'Large Fuel Tank restored fuel.';
+      return t('cons.result.large_fuel');
     case 'small_tnt':
       cancelActiveDrill(state);
       blastRadius(state, 1);
-      return 'Small TNT cleared a 3x3 area.';
+      return t('cons.result.small_tnt');
     case 'large_tnt':
       cancelActiveDrill(state);
       blastRadius(state, 2);
-      return 'Large TNT cleared a 5x5 area.';
+      return t('cons.result.large_tnt');
     case 'matter_transporter':
       cancelActiveDrill(state);
       state.blockSurfaceShopsUntilStop = false;
       state.player.position = { ...TELEPORT_SURFACE_TARGET };
       state.player.velocity = { x: 0, y: 0 };
-      return 'Matter Transporter moved the rig to the surface.';
+      return t('cons.result.transporter');
     case 'quantum_fissurizer': {
       cancelActiveDrill(state);
       state.blockSurfaceShopsUntilStop = true;
@@ -568,7 +568,7 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
         x: (random() * 2 - 1) * 5,
         y: -random() * 5,
       };
-      return 'Quantum Fissurizer launched the rig above ground.';
+      return t('cons.result.fissurizer');
     }
     default:
       return null;
@@ -608,7 +608,7 @@ function tickActiveEarthquake(state: GameState, dtSeconds: number): void {
 
   if (earthquake.remainingSeconds <= 0) {
     state.activeEarthquake = null;
-    state.toast = 'The tremors settle.';
+    state.toast = t('toast.tremors');
   }
 }
 
@@ -643,10 +643,7 @@ function startEarthquake(state: GameState, trigger: 'manual' | 'shop_close'): vo
     totalSeconds: EARTHQUAKE_DURATION_SECONDS,
     regenerateFromRow,
   };
-  state.toast =
-    trigger === 'manual'
-      ? 'Testing earthquake triggered.'
-      : 'Earthquake! The mine has shifted below you.';
+  state.toast = trigger === 'manual' ? t('toast.earthquake_test') : t('toast.earthquake');
 }
 
 function getConsumableEffectDuration(type: ConsumableType): number {
@@ -698,10 +695,6 @@ export function getSelectedUpgrade(state: GameState): UpgradeTierDef | null {
   }
 
   return UPGRADE_TIER_DEFS[category][tier as EquipmentTier];
-}
-
-export function getHowToCopy(): string[] {
-  return HOW_TO_COPY;
 }
 
 export function getCurrentDepth(position: Vector2): number {
@@ -865,7 +858,7 @@ export function attemptDig(
   }
 
   if (target.row === 0) {
-    return 'Cannot dig the first surface layer.';
+    return t('dig.surface_layer');
   }
 
   const cell = getCell(state.world, target.x, target.row);
@@ -876,14 +869,14 @@ export function attemptDig(
   const block = BLOCK_DEFS[cell.type];
   const miningMode = getDrillMiningMode(block.requiredDrill, drillTier);
   if (!canDrillTierMine(block.requiredDrill, drillTier)) {
-    return `${block.label} needs a better drill.`;
+    return t('dig.needs_drill', { block: blockLabel(cell.type) });
   }
 
   const fuelCost =
     (PHYSICS.digFuelBase + block.value / 42) *
     (miningMode === 'overclocked' ? PHYSICS.overtierDrillFuelMultiplier : 1);
   if (state.player.fuel < fuelCost) {
-    return 'Not enough fuel to start the drill.';
+    return t('dig.no_fuel');
   }
 
   spendFuel(state.player, fuelCost);
@@ -899,7 +892,9 @@ export function attemptDig(
   state.player.velocity = { x: 0, y: 0 };
   state.player.airborne = false;
   state.player.airbornePeakY = state.player.position.y;
-  return miningMode === 'overclocked' ? `Overclock-drilling ${block.label}...` : `Drilling ${block.label}...`;
+  return miningMode === 'overclocked'
+    ? t('dig.overclock', { block: blockLabel(cell.type) })
+    : t('dig.drilling', { block: blockLabel(cell.type) });
 }
 
 function getDigTarget(position: Vector2, direction: Direction): { x: number; row: number } | null {
@@ -973,19 +968,19 @@ function resolveActiveDrill(state: GameState): string | null {
   if (block.immediateCash) {
     state.player.cash += block.value;
     state.player.totalEarnings += block.value;
-    return `${block.label} sold instantly for $${block.value}.`;
+    return t('mine.sold_instant', { block: blockLabel(cell.type), value: block.value });
   }
 
   if (block.cargo > 0) {
     if (state.player.cargoUsed + block.cargo <= state.player.cargoCapacity) {
       addToCargo(state.player, cell.type as SellableMaterial, block.cargo);
-      return `Mined ${block.label}.`;
+      return t('mine.ok', { block: blockLabel(cell.type) });
     }
 
-    return `Mined ${block.label}, but the cargo hold was full so it was discarded.`;
+    return t('mine.discard', { block: blockLabel(cell.type) });
   }
 
-  return `Mined ${block.label}.`;
+  return t('mine.ok', { block: blockLabel(cell.type) });
 }
 
 function isActiveDrillValid(state: GameState, drill: ActiveDrillState): boolean {

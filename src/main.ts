@@ -1,5 +1,8 @@
+import { applyDocumentLocale } from './i18n';
 import { DiggrApp } from './ui/DiggrApp';
 import './styles.css';
+
+applyDocumentLocale();
 
 const root = document.querySelector<HTMLDivElement>('#app');
 

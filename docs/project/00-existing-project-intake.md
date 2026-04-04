@@ -4,13 +4,13 @@
 
 - Project: `Diggr`
 - Owner: `Davis Wang`
-- Date: `2026-03-31`
-- Requested outcome: Retune earthquakes so shop-close triggers are `1%` and each quake fully regenerates the underground with a genuinely new layout.
+- Date: `2026-04-01`
+- Requested outcome: Keep project documentation aligned with the shipped browser shell (i18n, chrome controls) and maintain a clean GitHub `main`.
 - Active platform profile: `browser-first`
 
 ## Current Playable State
 
-`Diggr` is already a fully playable browser-first mining game with title flow, deterministic mine generation, digging/flying, surface shops, save/load, inventory, timed drilling, consumable effects, procedural audio, and earthquakes working locally. The current build now uses a `1%` shop-close earthquake chance, rerolls the underground layout seed on quake so the mine regenerates as a genuinely new layout, and defaults the upgrade shop to drills on open.
+`Diggr` is a fully playable browser-first mining game with title flow, deterministic mine generation, digging/flying, surface shops, save/load, inventory, timed drilling, consumable effects, procedural audio, and rare shop-close earthquakes that reroll the underground layout. The UI supports **English** and **Simplified Chinese** via `src/i18n/`, with a bottom-right **chrome bar** that combines a single locale toggle (globe + active language badge) and an **icon-only** audio mute. The upgrade shop still defaults to drills on open.
 
 ## Docs Reviewed
 
@@ -18,15 +18,9 @@
 - [README.md](/Users/davis.wang/Documents/diggr/README.md)
 - [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md)
 - [deployment.md](/Users/davis.wang/Documents/diggr/docs/deployment.md)
+- [i18n-fictional-names.md](/Users/davis.wang/Documents/diggr/docs/i18n-fictional-names.md)
 - [00-existing-project-intake.md](/Users/davis.wang/Documents/diggr/docs/project/00-existing-project-intake.md)
 - [01-work-order.md](/Users/davis.wang/Documents/diggr/docs/project/01-work-order.md)
-- [tasks/todo.md](/Users/davis.wang/Documents/diggr/tasks/todo.md)
-- [index.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/index.md)
-- [game-lifecycle.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/workflows/game-lifecycle.md)
-- [browser-first.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/contracts/platforms/browser-first.md)
-- [producer.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/contracts/roles/producer.md)
-- [existing-project-intake.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/templates/existing-project-intake.md)
-- [work-order.md](/Users/davis.wang/Documents/pwner-studios-dev-team/docs/templates/work-order.md)
 
 ## Code Areas Reviewed
 
@@ -34,39 +28,34 @@
 - [world.ts](/Users/davis.wang/Documents/diggr/src/game/world.ts)
 - [content.ts](/Users/davis.wang/Documents/diggr/src/config/content.ts)
 - [GameScene.ts](/Users/davis.wang/Documents/diggr/src/phaser/GameScene.ts)
+- [DiggrApp.ts](/Users/davis.wang/Documents/diggr/src/ui/DiggrApp.ts)
 - [renderers.ts](/Users/davis.wang/Documents/diggr/src/ui/renderers.ts)
-- [types.ts](/Users/davis.wang/Documents/diggr/src/types.ts)
-- [logic.test.ts](/Users/davis.wang/Documents/diggr/tests/logic.test.ts)
+- [src/i18n/](/Users/davis.wang/Documents/diggr/src/i18n/)
 
 ## Current Run And Test Commands
 
 - install: `npm install`
-- run: `npm run dev`
+- run: `npm run dev` → [http://localhost:5173/](http://localhost:5173/)
 - build: `npm run build`
 - preview: `npm run preview`
 - test: `npm test`
 
 ## Known Bugs And Quality Gaps
 
-- No new request-specific gameplay gaps were found after landing the earthquake retune and drill-first upgrade shop default.
-- Remaining verification risk is feel-based only: quake rarity and shop-default usability are best confirmed in live play.
+- No request-specific gaps for this documentation pass. Fall-damage vs. multi-surface descent behavior remains a known design edge case if future tuning targets “true vertical drop” accounting.
 
 ## Artifact Status
 
 | Artifact | Status | Notes |
 | --- | --- | --- |
-| `docs/project/00-existing-project-intake.md` | `refresh_required` | The loop scope changed from audio delivery to earthquake tuning. |
-| `docs/project/01-work-order.md` | `refresh_required` | The work packet needs to match the earthquake tuning request. |
-| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `refresh_required` | Earthquake description should match the new whole-underground regeneration behavior. |
-| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `refresh_required` | Earthquake model details are stale and need the new chance/regeneration contract. |
-| `Earthquake chance tuning` | `refresh_required` | `EARTHQUAKE_SHOP_CLOSE_CHANCE` needs to drop to `1%`. |
-| `World regeneration model` | `refresh_required` | Earthquakes need a new layout seed rather than a rebuild from the same deterministic seed. |
-| `Earthquake regression coverage` | `refresh_required` | Tests currently pin the old “below viewport only / same block type” behavior. |
-| `Audio, UI, and unrelated gameplay systems` | `reusable` | Preserve current audio, movement, economy, shops, save/load, and presentation behavior. |
-| `Deployment workflow` | `out_of_scope` | No release pipeline change required. |
+| `docs/project/00-existing-project-intake.md` | `reusable` | Refreshed for i18n + chrome + doc sync. |
+| `docs/project/01-work-order.md` | `reusable` | Scoped to doc/README/architecture alignment. |
+| [README.md](/Users/davis.wang/Documents/diggr/README.md) | `reusable` | Describes i18n, chrome bar, and repo map. |
+| [architecture.md](/Users/davis.wang/Documents/diggr/docs/architecture.md) | `reusable` | Includes i18n and chrome boundaries. |
+| [i18n-fictional-names.md](/Users/davis.wang/Documents/diggr/docs/i18n-fictional-names.md) | `reusable` | Optional translator reference. |
+| `Deployment workflow` | `out_of_scope` | Unchanged unless deploy contract changes. |
 
 ## Recommended Loop Scope
 
-- Refresh only the request-affected surfaces: earthquake probability, world-regeneration seeding, targeted logic tests, and the stale docs/copy that describe the old behavior.
-- Preserve current gameplay rules outside the quake path, including audio, controls, shops, save/load, and the current browser-first shell.
-- Keep the change narrow: no broader rebalance, no new event types, and no rewrite of unrelated artifact chains.
+- Targeted refresh only when gameplay or shell behavior changes; keep intake and work order in sync with `main`.
+- Preserve working browser-first behavior unless a work order explicitly changes it.
