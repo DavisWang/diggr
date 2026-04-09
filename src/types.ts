@@ -202,6 +202,12 @@ export interface GameMeta {
   earthquakeCount: number;
 }
 
+/** Resolved at render time via `t(key, vars)` so locale switches update HUD toasts. */
+export interface I18nToast {
+  key: string;
+  vars?: Record<string, string | number>;
+}
+
 export interface GameState {
   status: 'active' | 'game_over';
   mode: 'gameplay' | 'modal';
@@ -212,7 +218,7 @@ export interface GameState {
   world: WorldState;
   player: PlayerState;
   meta: GameMeta;
-  toast: string | null;
+  toast: I18nToast | null;
   blockedShopUntilExit: ShopType | null;
   blockSurfaceShopsUntilStop: boolean;
   viewportBottomRow: number;
@@ -239,7 +245,7 @@ export interface TickResult {
   surfaceReturn: boolean;
   gameOver: boolean;
   openedShop: ShopType | null;
-  toast?: string;
+  toast?: I18nToast;
 }
 
 export interface DepthBandConfig {

@@ -9,9 +9,9 @@ import {
   WORLD_WIDTH,
 } from '../config/content';
 import { getConsumableEffectRenderState, getDrillRenderState } from '../game/logic';
-import { surfaceShopLabel } from '../i18n';
+import { getLocale, surfaceShopLabel } from '../i18n';
 import { ensureRows, getCell } from '../game/world';
-import type { ControlState } from '../types';
+import type { ControlState, I18nToast } from '../types';
 import type { DiggrApp } from '../ui/DiggrApp';
 import {
   DIGGER_ANIMATIONS,
@@ -54,6 +54,8 @@ export class GameScene extends Phaser.Scene {
   private activeDrillSprite: Phaser.GameObjects.Image | null = null;
   private activeDrillMaskGraphics: Phaser.GameObjects.Graphics | null = null;
   private shopLabels: Phaser.GameObjects.Text[] = [];
+  /** Tracks i18n locale so surface shop Phaser labels refresh after chrome locale toggle. */
+  private shopLabelsLocale: string | null = null;
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys | null = null;
   private consumableKeys: Record<string, Phaser.Input.Keyboard.Key> = {};
   private tileSize = TILE_SIZE;
@@ -239,8 +241,17 @@ export class GameScene extends Phaser.Scene {
       sprite.setVisible(true);
     }
 
+    const locale = getLocale();
+    const localeChanged = this.shopLabelsLocale !== locale;
+    if (localeChanged) {
+      this.shopLabelsLocale = locale;
+    }
+
     this.shopLabels.forEach((label, index) => {
       const pad = SURFACE_PADS[index];
+      if (localeChanged) {
+        label.setText(surfaceShopLabel(pad.shop));
+      }
       const layout = getShopRenderLayout(pad, tileSize);
       label.setPosition(layout.labelX, layout.labelY);
       label.setFontSize(layout.fontSize);
@@ -411,7 +422,7 @@ export class GameScene extends Phaser.Scene {
   private updateTransientState(
     state: NonNullable<ReturnType<DiggrApp['getState']>>,
     _controls: Pick<ControlState, 'left' | 'right' | 'up' | 'down'>,
-    _toast: string | undefined,
+    _toast: I18nToast | undefined,
     dtSeconds: number,
     previousHealth: number,
   ): void {

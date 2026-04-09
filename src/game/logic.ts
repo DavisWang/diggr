@@ -23,7 +23,7 @@ import {
   WORLD_WIDTH,
   getTierIndex,
 } from '../config/content';
-import { blockLabel, consumableLabel, t, upgradeLabel } from '../i18n';
+import { blockLabel, consumableLabel, formatToast, normalizeGameToast, t, toastRef, upgradeLabel } from '../i18n';
 import { clamp, hashSeed, mulberry32, randomInt } from '../lib/random';
 import {
   canDrillTierMine,
@@ -50,6 +50,7 @@ import type {
   EquipmentLevels,
   EquipmentTier,
   GameState,
+  I18nToast,
   InventoryState,
   ModalState,
   PlayerState,
@@ -91,7 +92,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
       shopCloseCount: 0,
       earthquakeCount: 0,
     },
-    toast: testingMode ? t('toast.intro_testing') : t('toast.intro'),
+    toast: testingMode ? toastRef('toast.intro_testing') : toastRef('toast.intro'),
     blockedShopUntilExit: null,
     blockSurfaceShopsUntilStop: false,
     viewportBottomRow: 0,
@@ -99,6 +100,7 @@ export function createNewGame(seed = Date.now(), options: { testingMode?: boolea
 }
 
 export function restoreGame(state: GameState): GameState {
+  state.toast = normalizeGameToast(state.toast as unknown);
   normalizeSaveStationResumeState(state);
   state.world.layoutSeed = state.world.layoutSeed ?? state.world.seed;
   state.modalDismissGraceRemaining = state.modalDismissGraceRemaining ?? 0;
@@ -261,7 +263,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
 
   if (currentDepth > stats.safeDepth) {
     const overDepth = currentDepth - stats.safeDepth;
-    damagePlayer(state.player, (PHYSICS.ambientHeatPerSecond + overDepth * 0.03) * dtSeconds, 'Heat is building up.');
+    damagePlayer(state.player, (PHYSICS.ambientHeatPerSecond + overDepth * 0.03) * dtSeconds, '');
   }
 
   if (drillingLocked) {
@@ -292,7 +294,7 @@ export function tickGame(state: GameState, controls: ControlState, dtSeconds: nu
   if (!previousAboveSurface && nowAboveSurface && state.meta.hasVisitedUnderground) {
     result.surfaceReturn = true;
     state.meta.hasVisitedUnderground = false;
-    result.toast = result.toast ?? t('toast.surface');
+    result.toast = result.toast ?? toastRef('toast.surface');
   }
 
   if (
@@ -439,8 +441,8 @@ export function buyUpgrade(state: GameState, category: UpgradeType, tier: Equipm
   }
   state.player.equipment[category] = tier;
   syncPlayerDerived(state.player, state.meta.testingMode);
-  state.toast = t('toast.upgrade_installed', { name: upgradeLabel(category, tier) });
-  return state.toast;
+  state.toast = toastRef('toast.upgrade_installed', { name: upgradeLabel(category, tier) });
+  return formatToast(state.toast);
 }
 
 export function buyConsumable(state: GameState, type: ConsumableType): string | null {
@@ -457,8 +459,8 @@ export function buyConsumable(state: GameState, type: ConsumableType): string | 
     state.player.cash -= def.price;
   }
   state.player.inventory[type] += 1;
-  state.toast = t('toast.consumable_added', { name: consumableLabel(type) });
-  return state.toast;
+  state.toast = toastRef('toast.consumable_added', { name: consumableLabel(type) });
+  return formatToast(state.toast);
 }
 
 export function sellAllCargo(state: GameState): { total: number; message: string } | null {
@@ -476,9 +478,8 @@ export function sellAllCargo(state: GameState): { total: number; message: string
   state.player.totalEarnings += total;
   state.player.cargo = {};
   state.player.cargoUsed = 0;
-  const message = t('toast.sold_cargo', { total });
-  state.toast = message;
-  return { total, message };
+  state.toast = toastRef('toast.sold_cargo', { total });
+  return { total, message: formatToast(state.toast)! };
 }
 
 export function getCargoEntries(state: GameState): Array<{ type: SellableMaterial; label: string; amount: number; subtotal: number }> {
@@ -517,11 +518,11 @@ export function repairAndRefuel(state: GameState): string | null {
   }
   state.player.health = state.player.maxHealth;
   state.player.fuel = state.player.maxFuel;
-  state.toast = t('toast.rig_serviced', { cost });
-  return state.toast;
+  state.toast = toastRef('toast.rig_serviced', { cost });
+  return formatToast(state.toast);
 }
 
-export function useConsumable(state: GameState, type: ConsumableType): string | null {
+export function useConsumable(state: GameState, type: ConsumableType): I18nToast | null {
   if (state.player.inventory[type] <= 0) {
     return null;
   }
@@ -532,30 +533,30 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
   switch (type) {
     case 'repair_nanobot':
       state.player.health = Math.min(state.player.maxHealth, state.player.health + 28);
-      return t('cons.result.repair_nanobot');
+      return toastRef('cons.result.repair_nanobot');
     case 'repair_microbot':
       state.player.health = Math.min(state.player.maxHealth, state.player.health + 64);
-      return t('cons.result.repair_microbot');
+      return toastRef('cons.result.repair_microbot');
     case 'small_fuel_tank':
       state.player.fuel = Math.min(state.player.maxFuel, state.player.fuel + 42);
-      return t('cons.result.small_fuel');
+      return toastRef('cons.result.small_fuel');
     case 'large_fuel_tank':
       state.player.fuel = Math.min(state.player.maxFuel, state.player.fuel + 84);
-      return t('cons.result.large_fuel');
+      return toastRef('cons.result.large_fuel');
     case 'small_tnt':
       cancelActiveDrill(state);
       blastRadius(state, 1);
-      return t('cons.result.small_tnt');
+      return toastRef('cons.result.small_tnt');
     case 'large_tnt':
       cancelActiveDrill(state);
       blastRadius(state, 2);
-      return t('cons.result.large_tnt');
+      return toastRef('cons.result.large_tnt');
     case 'matter_transporter':
       cancelActiveDrill(state);
       state.blockSurfaceShopsUntilStop = false;
       state.player.position = { ...TELEPORT_SURFACE_TARGET };
       state.player.velocity = { x: 0, y: 0 };
-      return t('cons.result.transporter');
+      return toastRef('cons.result.transporter');
     case 'quantum_fissurizer': {
       cancelActiveDrill(state);
       state.blockSurfaceShopsUntilStop = true;
@@ -568,7 +569,7 @@ export function useConsumable(state: GameState, type: ConsumableType): string | 
         x: (random() * 2 - 1) * 5,
         y: -random() * 5,
       };
-      return t('cons.result.fissurizer');
+      return toastRef('cons.result.fissurizer');
     }
     default:
       return null;
@@ -608,7 +609,7 @@ function tickActiveEarthquake(state: GameState, dtSeconds: number): void {
 
   if (earthquake.remainingSeconds <= 0) {
     state.activeEarthquake = null;
-    state.toast = t('toast.tremors');
+    state.toast = toastRef('toast.tremors');
   }
 }
 
@@ -643,7 +644,7 @@ function startEarthquake(state: GameState, trigger: 'manual' | 'shop_close'): vo
     totalSeconds: EARTHQUAKE_DURATION_SECONDS,
     regenerateFromRow,
   };
-  state.toast = trigger === 'manual' ? t('toast.earthquake_test') : t('toast.earthquake');
+  state.toast = trigger === 'manual' ? toastRef('toast.earthquake_test') : toastRef('toast.earthquake');
 }
 
 function getConsumableEffectDuration(type: ConsumableType): number {
@@ -847,7 +848,7 @@ export function attemptDig(
   direction: Direction,
   drillTier: EquipmentTier,
   grounded: boolean,
-): string | null {
+): I18nToast | null {
   if (state.player.activeDrill || !grounded) {
     return null;
   }
@@ -858,7 +859,7 @@ export function attemptDig(
   }
 
   if (target.row === 0) {
-    return t('dig.surface_layer');
+    return toastRef('dig.surface_layer');
   }
 
   const cell = getCell(state.world, target.x, target.row);
@@ -869,14 +870,14 @@ export function attemptDig(
   const block = BLOCK_DEFS[cell.type];
   const miningMode = getDrillMiningMode(block.requiredDrill, drillTier);
   if (!canDrillTierMine(block.requiredDrill, drillTier)) {
-    return t('dig.needs_drill', { block: blockLabel(cell.type) });
+    return toastRef('dig.needs_drill', { block: blockLabel(cell.type) });
   }
 
   const fuelCost =
     (PHYSICS.digFuelBase + block.value / 42) *
     (miningMode === 'overclocked' ? PHYSICS.overtierDrillFuelMultiplier : 1);
   if (state.player.fuel < fuelCost) {
-    return t('dig.no_fuel');
+    return toastRef('dig.no_fuel');
   }
 
   spendFuel(state.player, fuelCost);
@@ -893,8 +894,8 @@ export function attemptDig(
   state.player.airborne = false;
   state.player.airbornePeakY = state.player.position.y;
   return miningMode === 'overclocked'
-    ? t('dig.overclock', { block: blockLabel(cell.type) })
-    : t('dig.drilling', { block: blockLabel(cell.type) });
+    ? toastRef('dig.overclock', { block: blockLabel(cell.type) })
+    : toastRef('dig.drilling', { block: blockLabel(cell.type) });
 }
 
 function getDigTarget(position: Vector2, direction: Direction): { x: number; row: number } | null {
@@ -921,7 +922,7 @@ function addToCargo(player: PlayerState, type: SellableMaterial, amount: number)
   player.cargoUsed = getCargoUsed(player.cargo);
 }
 
-function updateActiveDrill(state: GameState, dtSeconds: number): string | null {
+function updateActiveDrill(state: GameState, dtSeconds: number): I18nToast | null {
   const drill = state.player.activeDrill;
   if (!drill) {
     return null;
@@ -940,7 +941,7 @@ function updateActiveDrill(state: GameState, dtSeconds: number): string | null {
   return resolveActiveDrill(state);
 }
 
-function resolveActiveDrill(state: GameState): string | null {
+function resolveActiveDrill(state: GameState): I18nToast | null {
   const drill = state.player.activeDrill;
   if (!drill) {
     return null;
@@ -962,25 +963,25 @@ function resolveActiveDrill(state: GameState): string | null {
 
   if (block.hazardDamage) {
     const damage = block.hazardDamage * (1 - getDerivedStats(state.player).lavaMitigation);
-    damagePlayer(state.player, damage, `${block.label} scorched the hull.`);
+    damagePlayer(state.player, damage, '');
   }
 
   if (block.immediateCash) {
     state.player.cash += block.value;
     state.player.totalEarnings += block.value;
-    return t('mine.sold_instant', { block: blockLabel(cell.type), value: block.value });
+    return toastRef('mine.sold_instant', { block: blockLabel(cell.type), value: block.value });
   }
 
   if (block.cargo > 0) {
     if (state.player.cargoUsed + block.cargo <= state.player.cargoCapacity) {
       addToCargo(state.player, cell.type as SellableMaterial, block.cargo);
-      return t('mine.ok', { block: blockLabel(cell.type) });
+      return toastRef('mine.ok', { block: blockLabel(cell.type) });
     }
 
-    return t('mine.discard', { block: blockLabel(cell.type) });
+    return toastRef('mine.discard', { block: blockLabel(cell.type) });
   }
 
-  return t('mine.ok', { block: blockLabel(cell.type) });
+  return toastRef('mine.ok', { block: blockLabel(cell.type) });
 }
 
 function isActiveDrillValid(state: GameState, drill: ActiveDrillState): boolean {
@@ -1081,7 +1082,7 @@ function movePlayer(state: GameState, dtSeconds: number): void {
           const fallDistance = state.player.position.y - state.player.airbornePeakY;
           const damage = calculateFallDamage(state.player.maxHealth, fallDistance, Math.max(0, state.player.velocity.y));
           if (damage > 0) {
-            damagePlayer(state.player, damage, 'Heavy landing.');
+            damagePlayer(state.player, damage, '');
           }
           state.player.airborne = false;
           state.player.airbornePeakY = state.player.position.y;

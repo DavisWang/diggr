@@ -1,4 +1,5 @@
 import { PLAYER_HALF_HEIGHT, SAVE_VERSION, STORAGE_KEY, SURFACE_PADS } from '../config/content';
+import { normalizeGameToast } from '../i18n';
 import type { GameState, SaveData } from '../types';
 
 export const AUDIO_ENABLED_STORAGE_KEY = 'diggr-audio-enabled';
@@ -30,7 +31,11 @@ export function loadSaveGame(): SaveData | null {
 }
 
 export function loadState(): GameState | null {
-  return loadSaveGame()?.state ?? null;
+  const state = loadSaveGame()?.state ?? null;
+  if (!state) {
+    return null;
+  }
+  return { ...state, toast: normalizeGameToast(state.toast as unknown) };
 }
 
 export function persistState(state: GameState): SaveData | null {

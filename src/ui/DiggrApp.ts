@@ -16,7 +16,7 @@ import {
   tickGame,
 } from '../game/logic';
 import { getCell } from '../game/world';
-import { applyDocumentLocale, getLocale, setLocale, t } from '../i18n';
+import { applyDocumentLocale, getLocale, setLocale, toastRef } from '../i18n';
 import type { ConsumableType, ControlState, EquipmentTier, GameState, ScreenType, TickResult, UpgradeType } from '../types';
 import { renderChromeBar, renderGameplayUi, renderTitleScreen } from './renderers';
 import { GameScene } from '../phaser/GameScene';
@@ -433,7 +433,7 @@ export class DiggrApp {
         this.handleUserGesture();
         closeModal(this.gameState);
         persistState(this.gameState);
-        this.gameState.toast = t('toast.game_saved');
+        this.gameState.toast = toastRef('toast.game_saved');
         this.audio.playCue('save');
         this.syncPersistentAudioState();
         this.uiDirty = true;

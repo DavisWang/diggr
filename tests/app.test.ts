@@ -224,7 +224,7 @@ describe('app shell', () => {
     expect(persisted).toContain('"modal":{"type":"none"}');
     expect(app.getState()?.mode).toBe('gameplay');
     expect(app.getState()?.modal.type).toBe('none');
-    expect(app.getState()?.toast).toBe('Game saved.');
+    expect(app.getState()?.toast).toEqual({ key: 'toast.game_saved' });
   });
 
   test('loading a save created at the save balloon starts on the ground without reopening the modal', () => {

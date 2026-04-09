@@ -33,6 +33,7 @@ Diggr is a desktop-first mining game with:
 | `src/ui/` | DOM overlays for HUD, shops, inventory, title, and game-over screens |
 | `src/i18n/` | UI strings, locale helpers, and zh game copy for blocks, shops, upgrades, and consumables |
 | `docs/i18n-fictional-names.md` | Notes on translating spoof tier and ore names for Chinese |
+| `docs/i18n-audit.md` | Where strings are localized, gaps, and toast/i18n behavior |
 | `src/config/content.ts` | Balance, physics constants, shop pads, item defs, and render tuning |
 | `docs/architecture.md` | Architectural model and key design decisions |
 | `docs/deployment.md` | GitHub Pages deployment instructions |

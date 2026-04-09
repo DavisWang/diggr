@@ -17,6 +17,7 @@ import {
   useConsumable,
 } from '../src/game/logic';
 import { setCell, getCell } from '../src/game/world';
+import { formatToast } from '../src/i18n';
 import { loadState, persistState } from '../src/lib/storage';
 
 describe('game rules', () => {
@@ -31,7 +32,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('first surface layer');
+    expect(formatToast(result)).toContain('first surface layer');
     expect(getCell(state.world, 5, 0).type).toBe('dirt');
   });
 
@@ -66,7 +67,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'down', state.player.equipment.drill, true);
 
-    expect(result).toContain('first surface layer');
+    expect(formatToast(result)).toContain('first surface layer');
     expect(getCell(state.world, 6, 0).type).toBe('dirt');
   });
 
@@ -77,7 +78,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', 'bronzium', true);
 
-    expect(result).toContain('better drill');
+    expect(formatToast(result)).toContain('better drill');
     expect(getCell(state.world, 6, 2).type).toBe('goldium_ore');
   });
 
@@ -89,7 +90,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', 'bronzium', true);
 
-    expect(result).toContain('Overclock-drilling Silverium');
+    expect(formatToast(result)).toContain('Overclock-drilling Silverium');
     expect(state.player.activeDrill).not.toBeNull();
     expect(state.player.activeDrill!.totalSeconds).toBeGreaterThan(calculateDrillDurationSeconds('silverium', 'silverium'));
     expect(startingFuel - state.player.fuel).toBeGreaterThan(PHYSICS.digFuelBase + BLOCK_DEFS.silverium.value / 42);
@@ -106,7 +107,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('Drilling Tinnite');
+    expect(formatToast(result)).toContain('Drilling Tinnite');
     expect(state.player.activeDrill).not.toBeNull();
     expect(getCell(state.world, 6, 2).type).toBe('tinnite');
     expect(getDrillRenderState(state.player)?.progress).toBe(0);
@@ -155,7 +156,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('Drilling Molten Lava');
+    expect(formatToast(result)).toContain('Drilling Molten Lava');
     advanceDrill(state);
 
     expect(state.player.health).toBeLessThan(startingHealth);
@@ -171,13 +172,13 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('Drilling Tinnite');
+    expect(formatToast(result)).toContain('Drilling Tinnite');
     advanceDrill(state);
 
     expect(getCell(state.world, 6, 2).type).toBe('air');
     expect(state.player.cargoUsed).toBe(1);
     expect(state.player.cargo.tinnite ?? 0).toBe(0);
-    expect(state.toast).toContain('discarded');
+    expect(formatToast(state.toast)).toContain('discarded');
   });
 
   test('higher value blocks take longer to drill and better drills reduce duration', () => {
@@ -239,7 +240,7 @@ describe('game rules', () => {
 
     const result = attemptDig(state, 'left', state.player.equipment.drill, true);
 
-    expect(result).toContain('Not enough fuel');
+    expect(formatToast(result)).toContain('Not enough fuel');
     expect(state.player.activeDrill).toBeNull();
     expect(getCell(state.world, 6, 2).type).toBe('tinnite');
   });
@@ -419,7 +420,7 @@ describe('game rules', () => {
 
     expect(state.activeEarthquake).not.toBeNull();
     expect(state.activeEarthquake?.regenerateFromRow).toBe(1);
-    expect(state.toast).toBe('Testing earthquake triggered.');
+    expect(state.toast).toEqual({ key: 'toast.earthquake_test' });
     expect(state.world.layoutSeed).not.toBe(originalLayoutSeed);
     expect(getCell(state.world, 5, 9).type).not.toBe('air');
 
@@ -554,7 +555,7 @@ describe('game rules', () => {
     state.player.inventory.matter_transporter = 1;
     state.player.inventory.quantum_fissurizer = 1;
 
-    expect(useConsumable(state, 'matter_transporter')).toContain('surface');
+    expect(formatToast(useConsumable(state, 'matter_transporter'))).toContain('surface');
     expect(state.player.position.y).toBeLessThan(0);
     expect(state.player.position.x).toBeCloseTo(9.8, 1);
 

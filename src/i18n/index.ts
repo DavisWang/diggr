@@ -1,5 +1,5 @@
 import { BLOCK_DEFS, CONSUMABLE_DEFS, UPGRADE_TIER_DEFS } from '../config/content';
-import type { BlockType, ConsumableType, EquipmentTier, ShopType, UpgradeType } from '../types';
+import type { BlockType, ConsumableType, EquipmentTier, I18nToast, ShopType, UpgradeType } from '../types';
 import { loadLocalePreference, persistLocalePreference } from './storage';
 import type { Locale } from './types';
 import { UI_MESSAGES } from './ui-messages';
@@ -15,6 +15,7 @@ function resolvedLocale(): Locale {
 }
 
 export type { Locale } from './types';
+export type { I18nToast } from '../types';
 
 export function getLocale(): Locale {
   return resolvedLocale();
@@ -34,6 +35,7 @@ export function applyDocumentLocale(locale?: Locale): void {
   const active = locale ?? resolvedLocale();
   document.documentElement.lang = active === 'zh-CN' ? 'zh-CN' : 'en';
   document.documentElement.classList.toggle('locale-zh', active === 'zh-CN');
+  document.title = t('doc.title');
 }
 
 /** Vitest: force English so string assertions stay stable. */
@@ -54,6 +56,39 @@ export function t(key: string, vars?: Record<string, string | number>): string {
     }
   }
   return template;
+}
+
+export function toastRef(key: string, vars?: Record<string, string | number>): I18nToast {
+  return vars ? { key, vars } : { key };
+}
+
+export function formatToast(toast: I18nToast | null | undefined): string | null {
+  if (toast == null) {
+    return null;
+  }
+  return t(toast.key, toast.vars);
+}
+
+/** Migrate saves that stored a plain string toast (dropped) or validate i18n payload. */
+export function normalizeGameToast(raw: unknown): I18nToast | null {
+  if (raw == null) {
+    return null;
+  }
+  if (typeof raw === 'string') {
+    return null;
+  }
+  if (typeof raw === 'object' && raw !== null && 'key' in raw) {
+    const o = raw as Record<string, unknown>;
+    if (typeof o.key !== 'string') {
+      return null;
+    }
+    const vars = o.vars;
+    if (vars != null && typeof vars === 'object' && !Array.isArray(vars)) {
+      return { key: o.key, vars: vars as Record<string, string | number> };
+    }
+    return { key: o.key };
+  }
+  return null;
 }
 
 export function blockLabel(type: BlockType): string {

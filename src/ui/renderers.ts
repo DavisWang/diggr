@@ -27,6 +27,7 @@ import {
   blockLabel,
   consumableDescription,
   consumableLabel,
+  formatToast,
   getHowToFooterLines,
   surfaceShopLabel,
   t,
@@ -161,9 +162,10 @@ export function renderGameplayUi(root: HTMLElement, state: GameState, handlers: 
     root.append(renderModalForState(state, handlers));
   }
 
-  if (state.toast) {
+  const toastText = formatToast(state.toast);
+  if (toastText) {
     const toast = div('panel toast');
-    toast.textContent = state.toast;
+    toast.textContent = toastText;
     root.append(toast);
   }
 }
